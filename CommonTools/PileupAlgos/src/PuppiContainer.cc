@@ -13,6 +13,7 @@ using namespace fastjet;
 
 PuppiContainer::PuppiContainer(const edm::ParameterSet &iConfig) {
     fApplyCHS        = iConfig.getParameter<bool>("applyCHS");
+    fInvert          = iConfig.getParameter<bool>("invertPuppi");
     fUseExp          = iConfig.getParameter<bool>("useExp");
     fPuppiWeightCut  = iConfig.getParameter<double>("MinPuppiWeight");
     std::vector<edm::ParameterSet> lAlgos = iConfig.getParameter<std::vector<edm::ParameterSet> >("algos");
@@ -30,8 +31,8 @@ void PuppiContainer::initialize(const std::vector<RecoObj> &iRecoObjects) {
     fChargedPV    .resize(0);
     fPupParticles .resize(0);
     fWeights      .resize(0);
-    fVals.resize(0);
-    fRawAlphas.resize(0);
+    fVals         .resize(0);
+    fRawAlphas    .resize(0);
     fAlphaMed     .resize(0);
     fAlphaRMS     .resize(0);
     //fChargedNoPV.resize(0);
@@ -233,9 +234,10 @@ std::vector<double> const & PuppiContainer::puppiWeights() {
             LogDebug("PuppiWeightError") << "====> Weight is nan : " << pWeight << " : pt " << fRecoParticles[i0].pt << " -- eta : " << fRecoParticles[i0].eta << " -- Value" << fVals[i0] << " -- id :  " << fRecoParticles[i0].id << " --  NAlgos: " << lNAlgos << std::endl;
         }
         //Basic Cuts
-        if(pWeight                         < fPuppiWeightCut) pWeight = 0;  //==> Elminate the low Weight stuff
+	if(pWeight                         < fPuppiWeightCut) pWeight = 0;  //==> Elminate the low Weight stuff
         if(pWeight*fPFParticles[i0].pt()   < fPuppiAlgo[pPupId].neutralPt(fNPV) && fRecoParticles[i0].id == 0 ) pWeight = 0;  //threshold cut on the neutral Pt
-        
+	if(fInvert) pWeight = 1.-pWeight;
+
         //std::cout << "fRecoParticles[i0].pt = " <<  fRecoParticles[i0].pt << ", fRecoParticles[i0].charge = " << fRecoParticles[i0].charge << ", fRecoParticles[i0].id = " << fRecoParticles[i0].id << ", weight = " << pWeight << std::endl;
 
         fWeights .push_back(pWeight);

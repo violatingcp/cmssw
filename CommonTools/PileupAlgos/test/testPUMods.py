@@ -8,11 +8,12 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 10
 process.GlobalTag.globaltag = 'START53_V7G::All'
 
 process.load('CommonTools/PileupAlgos/Puppi_cff')
+process.load('CommonTools/PileupAlgos/PUPuppi_cff')
 process.load('CommonTools/PileupAlgos/softKiller_cfi')
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(50) )
 process.source = cms.Source("PoolSource",
-                            fileNames  = cms.untracked.vstring('/store/relval/CMSSW_7_2_0_pre6/RelValProdTTbar/AODSIM/PRE_STA72_V4-v1/00000/BA8284B4-4F40-E411-9AA2-002590593878.root')
+                            fileNames  = cms.untracked.vstring('/store/relval/CMSSW_7_4_1/RelValTTbar_13/GEN-SIM-RECO/PU25ns_MCRUN2_74_V9_gensim71X-v1/00000/24367CFB-9BEC-E411-90A3-0025905A60C6.root')
 )
 process.source.inputCommands = cms.untracked.vstring("keep *",
                                                      "drop *_MEtoEDMConverter_*_*")
@@ -24,7 +25,7 @@ process.options = cms.untracked.PSet(
 )
 
 
-process.puSequence = cms.Sequence(process.puppi*process.softKiller)
+process.puSequence = cms.Sequence(process.puppi*process.softKiller*process.pupuppi)
 process.p = cms.Path(process.puSequence)
 process.output = cms.OutputModule("PoolOutputModule",
                                   outputCommands = cms.untracked.vstring('drop *',

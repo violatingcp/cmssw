@@ -33,6 +33,7 @@ puppi = cms.EDProducer("PuppiProducer",#cms.PSet(#"PuppiProducer",
                        #candName      = cms.string('packedPFCandidates'),
                        #vertexName     = cms.string('offlineSlimmedPrimaryVertices'),
                        applyCHS       = cms.bool  (True),
+                       invertPuppi    = cms.bool  (False),
                        useExp         = cms.bool  (False),
                        MinPuppiWeight = cms.double(0.01),
                        algos          = cms.VPSet( 

@@ -68,6 +68,7 @@ protected:
     std::vector<double>    fAlphaRMS;
 
     bool   fApplyCHS;
+    bool   fInvert;
     bool   fUseExp;
     double fNeutralMinPt;
     double fNeutralSlope;
