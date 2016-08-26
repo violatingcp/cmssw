@@ -13,6 +13,7 @@ public:
   //Computing Mean and RMS
   void   reset();
   void   fixAlgoEtaBin(int i_eta );
+  bool   checkExtrap(const double iPt,const double iEta,const unsigned int iAlgo);
   void   add(const fastjet::PseudoJet &iParticle,const double &iVal,const unsigned int iAlgo);
   void   computeMedRMS(const unsigned int &iAlgo,const double &iPVFrac);
   //Get the Weight
@@ -46,6 +47,8 @@ private:
   double fEtaMaxExtrap;
 
   double cur_PtMin;
+  double cur_EtaMin;
+  double cur_EtaMax;
   double cur_NeutralPtMin;
   double cur_NeutralPtSlope;
   double cur_RMS;

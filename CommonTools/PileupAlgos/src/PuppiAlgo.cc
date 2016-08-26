@@ -81,12 +81,20 @@ void PuppiAlgo::reset() {
 
 void PuppiAlgo::fixAlgoEtaBin(int i_eta) {
   cur_PtMin = fPtMin[i_eta]; 
+  cur_EtaMax = fEtaMax[i_eta]; 
+  cur_EtaMin = fEtaMin[i_eta]; 
   cur_NeutralPtMin = fNeutralPtMin[i_eta];
   cur_NeutralPtSlope = fNeutralPtSlope[i_eta];
   cur_RMS = fRMS_perEta[0][i_eta]; // 0 is number of algos within this eta bin
   cur_Med = fMedian_perEta[0][i_eta]; // 0 is number of algos within this eta bin
 }
-
+bool PuppiAlgo::checkExtrap(const double iPt,const double iEta,const unsigned int iAlgo) { 
+    if(iPt < fRMSPtMin[iAlgo]) return false;
+    if(fEtaMaxExtrap > 0 && std::abs(iEta) > fEtaMaxExtrap) return false;
+    if(fEtaMaxExtrap < 0 && std::abs(iEta) < cur_EtaMin   ) return false;  
+    if(fEtaMaxExtrap < 0 && std::abs(iEta) > cur_EtaMax   ) return false;  
+    return true;
+}
 void PuppiAlgo::add(const fastjet::PseudoJet &iParticle,const double &iVal,const unsigned int iAlgo) {
     if(iParticle.pt() < fRMSPtMin[iAlgo]) return;
     // Change from SRR : Previously used fastjet::PseudoJet::user_index to decide the particle type.
@@ -114,13 +122,13 @@ void PuppiAlgo::add(const fastjet::PseudoJet &iParticle,const double &iVal,const
 
     // added by Nhan -- for all eta regions, compute mean/RMS from the central charged PU
     //std::cout << "std::abs(puppi_register) = " << std::abs(puppi_register) << std::endl;
-    if ((std::abs(iParticle.eta()) < fEtaMaxExtrap) && (std::abs(puppi_register) >= 3)){
+    if ((std::abs(iParticle.eta()) < std::abs(fEtaMaxExtrap)) && (std::abs(puppi_register) >= 3)){
         fPups.push_back(iVal);
         // fPupsPV.push_back(iVal);        
         fNCount[iAlgo]++;
     }
     // for the low PU case, correction.  for checking that the PU-only median will be below the PV particles
-    if(std::abs(iParticle.eta()) < fEtaMaxExtrap && (std::abs(puppi_register) >=1 && std::abs(puppi_register) <=2)) fPupsPV.push_back(iVal);
+    if(std::abs(iParticle.eta()) < std::abs(fEtaMaxExtrap) && (std::abs(puppi_register) >=1 && std::abs(puppi_register) <=2)) fPupsPV.push_back(iVal);
 
 }
 

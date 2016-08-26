@@ -148,7 +148,8 @@ void PuppiContainer::getRMSAvg(int iOpt,std::vector<fastjet::PseudoJet> const &i
             pAlgo    = fPuppiAlgo[i1].algoId   (iOpt);
             pCharged = fPuppiAlgo[i1].isCharged(iOpt);
             pCone    = fPuppiAlgo[i1].coneSize (iOpt);
-            double curVal = -1; 
+	    if(!fPuppiAlgo[i1].checkExtrap(iConstits[i0].pt(),iConstits[i0].eta(),pAlgo)) continue;
+	    double curVal = -1; 
             if(!pCharged) curVal = goodVar(iConstits[i0],iParticles       ,pAlgo,pCone);
             if( pCharged) curVal = goodVar(iConstits[i0],iChargedParticles,pAlgo,pCone);
             //std::cout << "i1 = " << i1 << ", curVal = " << curVal << ", eta = " << iConstits[i0].eta() << ", pupID = " << pPupId << std::endl;
