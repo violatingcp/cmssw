@@ -12,6 +12,7 @@ HGCalTowerMap::HGCalTowerMap(const std::vector<HGCalTowerCoord>& tower_ids,
   }
 }
 
+// HGCalTowerMap::~HGCalTowerMap() {}
 
 
 const HGCalTowerMap& HGCalTowerMap::operator+=(const HGCalTowerMap& map){
@@ -33,6 +34,9 @@ const HGCalTowerMap& HGCalTowerMap::operator+=(const HGCalTowerMap& map){
   return *this;
 }
 
+// bool HGCalTowerMap::addEt(short iX, short iY, float etEm, float etHad) {
+//   return addEt(pack_tower_ID(iX, iY), etEm, etHad);
+// }
 
 bool HGCalTowerMap::addEt(short bin_id, float etEm, float etHad) {
   auto this_tower = towerMap_.find(bin_id);
