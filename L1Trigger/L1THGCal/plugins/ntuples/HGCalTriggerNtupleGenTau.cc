@@ -249,13 +249,18 @@ fill(const edm::Event& e, const edm::EventSetup& es)
                     const reco::GenParticleRefVector& granddaughters = daughter->daughterRefVector();
 
                     for( const auto& granddaughter : granddaughters ){
+		else{
+
+		  const reco::GenParticleRefVector& granddaughters = daughter->daughterRefVector();
+
+		  for( const auto& granddaughter : granddaughters ){
                         if( isStableNeutralHadron( *granddaughter ) ){
                             tau_p4vis+=(granddaughter->p4());
                             finalProds.push_back( granddaughter );
                         }
                     }
 
-                }
+		}
 
                 /* Here the selection of the decay product according to the Pythia6 decayTree */                
                 if( !isPythia8generator_ ){            
