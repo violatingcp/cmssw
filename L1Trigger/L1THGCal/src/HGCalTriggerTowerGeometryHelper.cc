@@ -86,6 +86,22 @@ HGCalTriggerTowerGeometryHelper::HGCalTriggerTowerGeometryHelper(const edm::Para
 }
 
 
+// void HGCalTriggerTowerGeometryHelper::createTowerCoordinates(const std::vector<unsigned short>& tower_ids) {
+//   if(tower_coords_.size() == 0) {
+//     tower_coords_.reserve(tower_ids.size());
+//     for (auto towerId : tower_ids) {
+//       GlobalPoint center = getPositionAtReferenceSurface(l1t::HGCalTowerID(towerId));
+//       // std::cout << l1t::HGCalTowerID(towerId).zside() << " "
+//       //           << l1t::HGCalTowerID(towerId).coord1() << " "
+//       //           << l1t::HGCalTowerID(towerId).coord2()
+//       //           << "  eta: " << center.eta()
+//       //           << " phi: " << center.phi() << std::endl;
+//       tower_coords_.emplace_back(towerId, center.eta(), center.phi());
+//     }
+//   }
+// }
+
+
 const std::vector<l1t::HGCalTowerCoord>& HGCalTriggerTowerGeometryHelper::getTowerCoordinates() const {
   return tower_coords_;
 }
