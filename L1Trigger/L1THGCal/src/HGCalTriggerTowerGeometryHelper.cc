@@ -85,21 +85,29 @@ HGCalTriggerTowerGeometryHelper::HGCalTriggerTowerGeometryHelper(const edm::Para
   }
 }
 
+  if(conf.getParameter<bool>("readMappingFile")) {
+    // We read the TC to TT mapping from file,
+    // otherwise we derive the TC to TT mapping on the fly from eta-phi coord. of the TCs
+    std::ifstream l1tTriggerTowerMappingStream(conf.getParameter<edm::FileInPath>("L1TTriggerTowerMapping").fullPath());
+    if(!l1tTriggerTowerMappingStream.is_open()) {
+        throw cms::Exception("MissingDataFile")
+            << "Cannot open HGCalTriggerGeometry L1TTriggerTowerMapping file\n";
+    }
 
-// void HGCalTriggerTowerGeometryHelper::createTowerCoordinates(const std::vector<unsigned short>& tower_ids) {
-//   if(tower_coords_.size() == 0) {
-//     tower_coords_.reserve(tower_ids.size());
-//     for (auto towerId : tower_ids) {
-//       GlobalPoint center = getPositionAtReferenceSurface(l1t::HGCalTowerID(towerId));
-//       // std::cout << l1t::HGCalTowerID(towerId).zside() << " "
-//       //           << l1t::HGCalTowerID(towerId).coord1() << " "
-//       //           << l1t::HGCalTowerID(towerId).coord2()
-//       //           << "  eta: " << center.eta()
-//       //           << " phi: " << center.phi() << std::endl;
-//       tower_coords_.emplace_back(towerId, center.eta(), center.phi());
-//     }
-//   }
-// }
+    unsigned trigger_cell_id = 0;
+    unsigned short ix = 0;
+    unsigned short iy = 0;
+
+    for(; l1tTriggerTowerMappingStream >> trigger_cell_id >> ix >> iy;) {
+      HGCalDetId detId(trigger_cell_id);
+      int zside = detId.zside();
+      l1t::HGCalTowerID towerId(zside, ix, iy);
+      cells_to_trigger_towers_[trigger_cell_id] = towerId.rawId();
+    }
+    l1tTriggerTowerMappingStream.close();
+
+  }
+}
 
 
 const std::vector<l1t::HGCalTowerCoord>& HGCalTriggerTowerGeometryHelper::getTowerCoordinates() const {
