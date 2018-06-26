@@ -12,7 +12,6 @@ HGCalTowerMap::HGCalTowerMap(const std::vector<HGCalTowerCoord>& tower_ids,
   }
 }
 
-// HGCalTowerMap::~HGCalTowerMap() {}
 
 
 const HGCalTowerMap& HGCalTowerMap::operator+=(const HGCalTowerMap& map){
