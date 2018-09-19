@@ -25,6 +25,12 @@ SimL1TMuonCommon = cms.Sequence(simDtTriggerPrimitiveDigis + simCscTriggerPrimit
 #
 # Legacy Trigger:
 #
+<<<<<<< HEAD
+=======
+from Configuration.Eras.Modifier_stage2L1Trigger_cff import stage2L1Trigger
+from Configuration.Eras.Modifier_phase2_trigger_cff import phase2_trigger
+if not (stage2L1Trigger.isChosen() or phase2_trigger.isChosen()):
+>>>>>>> Configure SimMuon sequence to run Stage2 version aslo when phase2_trigger era.
 #
 # - CSC Track Finder emulator
 #
@@ -71,16 +77,16 @@ SimL1TMuon = cms.Sequence(SimL1TMuonCommon + simCsctfTrackDigis + simCsctfDigis 
 #
 # Stage-2 Trigger
 #
-from L1Trigger.L1TTwinMux.simTwinMuxDigis_cfi import *
-from L1Trigger.L1TMuonBarrel.simBmtfDigis_cfi import *
-from L1Trigger.L1TMuonEndCap.simEmtfDigis_cfi import *
-from L1Trigger.L1TMuonOverlap.simOmtfDigis_cfi import *
-from L1Trigger.L1TMuon.simGmtCaloSumDigis_cfi import *
-from L1Trigger.L1TMuon.simGmtStage2Digis_cfi import *
-from Configuration.Eras.Modifier_stage2L1Trigger_cff import stage2L1Trigger
+if (stage2L1Trigger.isChosen() or phase2_trigger.isChosen()):
+    from L1Trigger.L1TTwinMux.simTwinMuxDigis_cfi import *
+    from L1Trigger.L1TMuonBarrel.simBmtfDigis_cfi import *
+    from L1Trigger.L1TMuonEndCap.simEmtfDigis_cfi import *
+    from L1Trigger.L1TMuonOverlap.simOmtfDigis_cfi import *
+    from L1Trigger.L1TMuon.simGmtCaloSumDigis_cfi import *
+    from L1Trigger.L1TMuon.simGmtStage2Digis_cfi import *
 #
 #
-stage2L1Trigger.toReplaceWith(SimL1TMuon, cms.Sequence(SimL1TMuonCommon + simTwinMuxDigis + simBmtfDigis + simEmtfDigis + simOmtfDigis + simGmtCaloSumDigis + simGmtStage2Digis))
+    stage2L1Trigger.toReplaceWith(SimL1TMuon, cms.Sequence(SimL1TMuonCommon + simTwinMuxDigis + simBmtfDigis + simEmtfDigis + simOmtfDigis + simGmtCaloSumDigis + simGmtStage2Digis))
 
 from L1Trigger.ME0Trigger.me0TriggerPseudoDigis_cff import *
 _phase2_SimL1TMuon = SimL1TMuon.copy()
