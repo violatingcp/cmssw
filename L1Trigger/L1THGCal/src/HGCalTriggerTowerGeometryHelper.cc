@@ -85,36 +85,6 @@ HGCalTriggerTowerGeometryHelper::HGCalTriggerTowerGeometryHelper(const edm::Para
   }
 }
 
-  if(conf.getParameter<bool>("readMappingFile")) {
-    // We read the TC to TT mapping from file,
-    // otherwise we derive the TC to TT mapping on the fly from eta-phi coord. of the TCs
-    std::ifstream l1tTriggerTowerMappingStream(conf.getParameter<edm::FileInPath>("L1TTriggerTowerMapping").fullPath());
-    if(!l1tTriggerTowerMappingStream.is_open()) {
-        throw cms::Exception("MissingDataFile")
-            << "Cannot open HGCalTriggerGeometry L1TTriggerTowerMapping file\n";
-    }
-
-    unsigned trigger_cell_id = 0;
-    unsigned short iEta = 0;
-    unsigned short iPhi = 0;
-
-    for(; l1tTriggerTowerMappingStream >> trigger_cell_id >> iEta >> iPhi;) {
-      if(iEta >= nBinsEta_ || iPhi >= nBinsPhi_) {
-        throw edm::Exception(edm::errors::Configuration, "Configuration")
-          << "HGCalTriggerTowerGeometryHelper warning inconsistent mapping TC : " << trigger_cell_id
-          << " to TT iEta: " << iEta << " iPhi: " << iPhi
-          << " when max #bins eta: "  << nBinsEta_ << " phi: " << nBinsPhi_ << std::endl;
-      }
-      HGCalDetId detId(trigger_cell_id);
-      int zside = detId.zside();
-      l1t::HGCalTowerID towerId(zside, iEta, iPhi);
-      cells_to_trigger_towers_[trigger_cell_id] = towerId.rawId();
-    }
-    l1tTriggerTowerMappingStream.close();
-
-  }
-}
-
 
 const std::vector<l1t::HGCalTowerCoord>& HGCalTriggerTowerGeometryHelper::getTowerCoordinates() const {
   return tower_coords_;

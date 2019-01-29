@@ -47,16 +47,6 @@ class HGCalTriggerTowerGeometryHelper {
     std::vector<double> binsEta_;
     std::vector<double> binsPhi_;
 
-    double minEta_;
-    double maxEta_;
-    double minPhi_;
-    double maxPhi_;
-    unsigned int nBinsEta_;
-    unsigned int nBinsPhi_;
-
-    std::vector<double> binsEta_;
-    std::vector<double> binsPhi_;
-
   };
 
 

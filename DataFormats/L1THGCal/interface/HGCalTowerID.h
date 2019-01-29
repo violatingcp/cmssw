@@ -47,16 +47,6 @@ namespace l1t {
   };
 
 
-  struct HGCalTowerCoord {
-    HGCalTowerCoord(unsigned short rawId, float eta, float phi): rawId(rawId),
-                                                                 eta(eta),
-                                                                 phi(phi) {}
-
-    const unsigned short rawId;
-    const float eta;
-    const float phi;
-
-  };
 
 
 }
