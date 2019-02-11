@@ -189,7 +189,8 @@ std::vector<GlobalPoint> HGCalMulticlusteringHistoImpl::computeMaxSeeds( const H
             for(int bin_phi = 0; bin_phi<int(nBinsPhiHisto_); bin_phi++){
 
                 float MIPT_seed = histoClusters.at({{z_side,bin_R,bin_phi}});
-                bool isMax = MIPT_seed>0;
+                bool isMax = MIPT_seed > histoThreshold_;
+                if (!isMax) continue;
 
                 float MIPT_S = bin_R<(int(nBinsRHisto_)-1) ? histoClusters.at({{z_side,bin_R+1,bin_phi}}) : 0;
                 float MIPT_N = bin_R>0 ? histoClusters.at({{z_side,bin_R-1,bin_phi}}) : 0;
