@@ -160,7 +160,7 @@ void L1Analysis::L1AnalysisPhaseII::SetSum(const edm::Handle<l1t::EtSumBxCollect
 void L1Analysis::L1AnalysisPhaseII::SetEG(const edm::Handle<l1t::EGammaBxCollection> EG, unsigned maxL1Extra)
 {
   for(l1t::EGammaBxCollection::const_iterator it=EG->begin(); it!=EG->end() && l1extra_.nEG<maxL1Extra; it++){
-    if (it->et() > 10){
+    if (it->et() > 5){
     l1extra_.EGEt .push_back(it->et());
     l1extra_.EGEta.push_back(it->eta());
     l1extra_.EGPhi.push_back(it->phi());
@@ -212,7 +212,7 @@ void L1Analysis::L1AnalysisPhaseII::SetTkEGLoose(const edm::Handle<l1t::L1TkElec
 void L1Analysis::L1AnalysisPhaseII::SetTkEM(const edm::Handle<l1t::L1TkEmParticleCollection> tkEM, unsigned maxL1Extra)
 {
   for(l1t::L1TkEmParticleCollection::const_iterator it=tkEM->begin(); it!=tkEM->end() && l1extra_.nTkEM<maxL1Extra; it++){
-    if (it->et() > 10){
+    if (it->et() > 5){
     l1extra_.tkEMEt .push_back(it->et());
     l1extra_.tkEMEta.push_back(it->eta());
     l1extra_.tkEMPhi.push_back(it->phi());
