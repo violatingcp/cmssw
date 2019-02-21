@@ -122,9 +122,19 @@ phase2_SimL1Emulator += l1TkMuonStubEndCap
 # ########################################################################
 from L1Trigger.L1TTrackMatch.L1TkObjectProducers_cff import *
 phase2_SimL1Emulator += L1TkPrimaryVertex
-phase2_SimL1Emulator += L1TkElectrons
-phase2_SimL1Emulator += L1TkIsoElectrons
-phase2_SimL1Emulator += L1TkPhotons
+
+#phase2_SimL1Emulator += L1TkElectrons # warning this has a PhaseI EG seed!
+#phase2_SimL1Emulator += L1TkIsoElectrons # warning this has a PhaseI EG seed!
+#phase2_SimL1Emulator += L1TkPhotons # warning this has a PhaseI EG seed!
+phase2_SimL1Emulator += L1TkElectronsCrystal
+phase2_SimL1Emulator += L1TkIsoElectronsCrystal
+phase2_SimL1Emulator += L1TkElectronsLooseCrystal
+phase2_SimL1Emulator += L1TkPhotonsCrystal
+phase2_SimL1Emulator += L1TkElectronsHGC
+phase2_SimL1Emulator += L1TkIsoElectronsHGC
+phase2_SimL1Emulator += L1TkElectronsLooseHGC
+phase2_SimL1Emulator += L1TkPhotonsHGC
+
 phase2_SimL1Emulator += L1TkCaloJets
 phase2_SimL1Emulator += L1TrackerJets
 phase2_SimL1Emulator += L1TrackerEtMiss
@@ -161,7 +171,7 @@ l1MetTKV     = pfMet.clone(src = "l1pfProducer:TKVtx")
 l1MetTightTK      = pfMet.clone(src = "l1pfProducerTightTK:TK")
 l1MetTightTKV     = pfMet.clone(src = "l1pfProducerTightTK:TKVtx")
 l1MetPF      = pfMet.clone(src = "l1pfProducerForMET:PF")
-l1MetPuppi   = pfMet.clone(src = "l1pfProducer:Puppi")
+l1MetPuppi   = pfMet.clone(src = "l1pfProducerForMET:Puppi")
 l1PFMets = cms.Sequence( l1MetCalo + l1MetTK + l1MetTKV + l1MetPF + l1MetPuppi
                         + l1MetTightTK + l1MetTightTKV)
 
