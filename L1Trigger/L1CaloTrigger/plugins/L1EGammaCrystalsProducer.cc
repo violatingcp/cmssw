@@ -102,7 +102,7 @@ class L1EGCrystalClusterProducer : public edm::EDProducer {
       bool doBremClustering;
       edm::EDGetTokenT<EcalRecHitCollection> ecalRecHitEBToken_;
       edm::EDGetTokenT<EcalEBTrigPrimDigiCollection> ecalTPEBToken_;
-      edm::EDGetTokenT<HBHERecHitCollection> hcalRecHitToken_;
+      //edm::EDGetTokenT<HBHERecHitCollection> hcalRecHitToken_;
       edm::EDGetTokenT< edm::SortedCollection<HcalTriggerPrimitiveDigi> > hcalTPToken_;
       edm::ESHandle<CaloTPGTranscoder> decoder_;
 
@@ -181,7 +181,7 @@ L1EGCrystalClusterProducer::L1EGCrystalClusterProducer(const edm::ParameterSet& 
    doBremClustering(iConfig.getUntrackedParameter<bool>("doBremClustering", true)),
    ecalRecHitEBToken_(consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("ecalRecHitEB"))),
    ecalTPEBToken_(consumes<EcalEBTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("ecalTPEB"))),
-   hcalRecHitToken_(consumes<HBHERecHitCollection>(iConfig.getParameter<edm::InputTag>("hcalRecHit"))),
+   //hcalRecHitToken_(consumes<HBHERecHitCollection>(iConfig.getParameter<edm::InputTag>("hcalRecHit"))),
    hcalTPToken_(consumes< edm::SortedCollection<HcalTriggerPrimitiveDigi> >(iConfig.getParameter<edm::InputTag>("hcalTP"))),
    useTowerMap(iConfig.getUntrackedParameter<bool>("useTowerMap", false)),
    towerMapName(iConfig.getUntrackedParameter<std::string>("towerMapName", "defaultMap.json"))
@@ -342,7 +342,10 @@ void L1EGCrystalClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
          hhit.energy = et / sin(hhit.position.theta());
          hcalhits.push_back(hhit);
 
-         //if ( debug ) std::cout << "HCAL TP Position (x,y,z): " << hcal_tp_position << ", TP ET : " << hhit.energy << std::endl;
+         if ( debug ) {
+            std::cout << "HCAL TP Position (x,y,z): " << hcal_tp_position << ", TP ET : " << hhit.energy << std::endl;
+            std::cout << " - iEta, iPhi : " << hhit.id.ieta() << ":" << hhit.id.iphi() << std::endl;
+         }
       }
    }
 
@@ -475,6 +478,10 @@ void L1EGCrystalClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
                ", eta=" << hit.position.eta() <<
                ", phi=" << hit.position.phi() << "\x1B[0m" << std::endl;
          }
+
+         // Save central hit's iEta/iPhi positions
+         params["seed_iEta"] = centerhit.id.ieta();
+         params["seed_iPhi"] = centerhit.id.iphi();
 
          if ( abs(hit.dieta(centerhit)) == 0 && abs(hit.diphi(centerhit)) <= 7 )
          {
