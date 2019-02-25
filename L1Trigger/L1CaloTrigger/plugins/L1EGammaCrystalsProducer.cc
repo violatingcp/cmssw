@@ -102,7 +102,7 @@ class L1EGCrystalClusterProducer : public edm::EDProducer {
       bool doBremClustering;
       edm::EDGetTokenT<EcalRecHitCollection> ecalRecHitEBToken_;
       edm::EDGetTokenT<EcalEBTrigPrimDigiCollection> ecalTPEBToken_;
-      edm::EDGetTokenT<HBHERecHitCollection> hcalRecHitToken_;
+      //edm::EDGetTokenT<HBHERecHitCollection> hcalRecHitToken_;
       edm::EDGetTokenT< edm::SortedCollection<HcalTriggerPrimitiveDigi> > hcalTPToken_;
       edm::ESHandle<CaloTPGTranscoder> decoder_;
 
@@ -118,8 +118,8 @@ class L1EGCrystalClusterProducer : public edm::EDProducer {
       bool useTowerMap;
       std::string towerMapName;
 
-      // Fit function to scale L1EG Crystal Pt to Stage-2
-      TF1 ptAdjustFunc = TF1("ptAdjustFunc", "(([0] + [1]*TMath::Exp(-[2]*x))*(1./([3] + [4]*TMath::Exp(-[5]*x))))");
+      // Fit function to scale L1EG Pt to align with electron gen pT
+      TF1 ptAdjustFunc = TF1("ptAdjustFunc", "([0] + [1]*TMath::Exp(-[2]*x)) * ([3] + [4]*TMath::Exp(-[5]*x))");
 
       class SimpleCaloHit
       {
@@ -181,7 +181,7 @@ L1EGCrystalClusterProducer::L1EGCrystalClusterProducer(const edm::ParameterSet& 
    doBremClustering(iConfig.getUntrackedParameter<bool>("doBremClustering", true)),
    ecalRecHitEBToken_(consumes<EcalRecHitCollection>(iConfig.getParameter<edm::InputTag>("ecalRecHitEB"))),
    ecalTPEBToken_(consumes<EcalEBTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("ecalTPEB"))),
-   hcalRecHitToken_(consumes<HBHERecHitCollection>(iConfig.getParameter<edm::InputTag>("hcalRecHit"))),
+   //hcalRecHitToken_(consumes<HBHERecHitCollection>(iConfig.getParameter<edm::InputTag>("hcalRecHit"))),
    hcalTPToken_(consumes< edm::SortedCollection<HcalTriggerPrimitiveDigi> >(iConfig.getParameter<edm::InputTag>("hcalTP"))),
    useTowerMap(iConfig.getUntrackedParameter<bool>("useTowerMap", false)),
    towerMapName(iConfig.getUntrackedParameter<std::string>("towerMapName", "defaultMap.json"))
@@ -192,15 +192,19 @@ L1EGCrystalClusterProducer::L1EGCrystalClusterProducer(const edm::ParameterSet& 
    produces<l1extra::L1EmParticleCollection>("L1EGCollectionWithCuts");
    produces< BXVector<l1t::EGamma> >("L1EGammaCollectionBXVWithCuts");
 
-   // Fit parameters measured on 28 May 2017, using 500 MeV threshold for ECAL TPs
-   // working in CMSSW 920
+
+   // Fit parameters measured on 11 Aug 2018, using 500 MeV threshold for ECAL TPs
+   // working in CMSSW 10_1_7
    // Adjustments to be applied to reco cluster pt
-   ptAdjustFunc.SetParameter( 0, 1.062166 );
-   ptAdjustFunc.SetParameter( 1, 0.298738 );
-   ptAdjustFunc.SetParameter( 2, 0.038971 );
-   ptAdjustFunc.SetParameter( 3, 0.977781 );
-   ptAdjustFunc.SetParameter( 4, -0.054748 );
-   ptAdjustFunc.SetParameter( 5, 0.044248 );
+   // L1EG cut working points are still a function of non-calibrated pT
+   // First order corrections
+   ptAdjustFunc.SetParameter( 0, 1.06 );
+   ptAdjustFunc.SetParameter( 1, 0.273 );
+   ptAdjustFunc.SetParameter( 2, 0.0411 );
+   // Residuals
+   ptAdjustFunc.SetParameter( 3, 1.00 );
+   ptAdjustFunc.SetParameter( 4, 0.567 );
+   ptAdjustFunc.SetParameter( 5, 0.288 );
    
    // Get tower mapping
    if (useTowerMap) {
@@ -338,7 +342,10 @@ void L1EGCrystalClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
          hhit.energy = et / sin(hhit.position.theta());
          hcalhits.push_back(hhit);
 
-         //if ( debug ) std::cout << "HCAL TP Position (x,y,z): " << hcal_tp_position << ", TP ET : " << hhit.energy << std::endl;
+         if ( debug ) {
+            std::cout << "HCAL TP Position (x,y,z): " << hcal_tp_position << ", TP ET : " << hhit.energy << std::endl;
+            std::cout << " - iEta, iPhi : " << hhit.id.ieta() << ":" << hhit.id.iphi() << std::endl;
+         }
       }
    }
 
@@ -471,6 +478,10 @@ void L1EGCrystalClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
                ", eta=" << hit.position.eta() <<
                ", phi=" << hit.position.phi() << "\x1B[0m" << std::endl;
          }
+
+         // Save central hit's iEta/iPhi positions
+         params["seed_iEta"] = centerhit.id.ieta();
+         params["seed_iPhi"] = centerhit.id.iphi();
 
          if ( abs(hit.dieta(centerhit)) == 0 && abs(hit.diphi(centerhit)) <= 7 )
          {
@@ -727,7 +738,10 @@ void L1EGCrystalClusterProducer::produce(edm::Event& iEvent, const edm::EventSet
 
             // BXVector l1t::EGamma quality defined with respect to these WPs
             int quality = (standaloneWP*std::pow(2,0)) + (electronWP98*std::pow(2,1)) + (looseL1TkMatchWP*std::pow(2,2)) + (photonWP80*std::pow(2,3)) + (electronWP90*std::pow(2,4)) + (passesStage2Eff*std::pow(2,5));
-            L1EGammaCollectionBXVWithCuts->push_back(0,l1t::EGamma(p4calibrated, calibratedPt, weightedPosition.eta(), weightedPosition.phi(),quality,1 ));
+            //L1EGammaCollectionBXVWithCuts->push_back(0,l1t::EGamma(p4calibrated, calibratedPt, weightedPosition.eta(), weightedPosition.phi(),quality,1 ));
+            l1t::EGamma egcand=l1t::EGamma(p4calibrated, calibratedPt, weightedPosition.eta(), weightedPosition.phi(),quality,1 );
+            egcand.setIsoEt(ECalIsolation); // just setting it as a default for now for technical reasons
+            L1EGammaCollectionBXVWithCuts->push_back(0,egcand);
             if (debug) std::cout << "Quality: "<<  std::bitset<10>(quality) << std::endl;
          }
       }
