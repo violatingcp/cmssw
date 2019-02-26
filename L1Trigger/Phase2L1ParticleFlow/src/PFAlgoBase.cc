@@ -19,9 +19,12 @@ using namespace l1tpf_impl;
 PFAlgoBase::PFAlgoBase( const edm::ParameterSet & iConfig ) :
     etaCharged_(iConfig.getParameter<double>("etaCharged")),
     puppiDr_(iConfig.getParameter<double>("puppiDr")),
+    puppiDrMin_(iConfig.getParameter<double>("puppiDrMin")),
+    puppiPtMax_(iConfig.getParameter<double>("puppiPtMax")),
     puppiEtaCuts_(vd2vf(iConfig.getParameter<std::vector<double>>("puppiEtaCuts"))),
     puppiPtCuts_(vd2vf(iConfig.getParameter<std::vector<double>>("puppiPtCuts"))),
     puppiPtCutsPhotons_(vd2vf(iConfig.getParameter<std::vector<double>>("puppiPtCutsPhotons"))),
+    puppiUsingBareTracks_(iConfig.getParameter<bool>("puppiUsingBareTracks")),
     vtxRes_(iConfig.getParameter<double>("vtxRes")),
     vtxAdaptiveCut_(iConfig.getParameter<bool>("vtxAdaptiveCut"))
 {
@@ -33,6 +36,9 @@ PFAlgoBase::PFAlgoBase( const edm::ParameterSet & iConfig ) :
         intPuppiPtCuts_.push_back( std::round(puppiPtCuts_[i] * CaloCluster::PT_SCALE) );
         intPuppiPtCutsPhotons_.push_back( std::round(puppiPtCutsPhotons_[i] * CaloCluster::PT_SCALE) );
     }
+}
+
+PFAlgoBase::~PFAlgoBase() {
 }
 
 void PFAlgoBase::initRegion(Region &r) const {
@@ -96,7 +102,7 @@ void PFAlgoBase::runChargedPV(Region &r, float z0) const {
 void PFAlgoBase::computePuppiWeights(Region &r, float alphaCMed, float alphaCRms, float alphaFMed, float alphaFRms) const {
     int16_t ietacut = std::round(etaCharged_ * CaloCluster::ETAPHI_SCALE);
     // FIXME floats for now
-    float puppiDr2 = std::pow(puppiDr_,2);
+    float puppiDr2 = std::pow(puppiDr_,2), puppiDr2min = std::pow(puppiDrMin_,2);
     for (PFParticle & p : r.pf) {
         // charged
         if (p.hwId <= 1) {
@@ -109,9 +115,19 @@ void PFAlgoBase::computePuppiWeights(Region &r, float alphaCMed, float alphaCRms
         for (const PFParticle & p2 : r.pf) {
             float dr2 = ::deltaR2(p.floatEta(), p.floatPhi(), p2.floatEta(), p2.floatPhi());
             if (dr2 > 0 && dr2 < puppiDr2) {
-                float w = std::pow(p2.floatPt(),2) / dr2;
+                float w = std::pow(std::min(p2.floatPt(), puppiPtMax_),2) / std::max<float>(puppiDr2min, dr2);
                 alphaF += w;
                 if (p2.chargedPV) alphaC += w;
+            }
+        }
+        if (puppiUsingBareTracks_) {
+            alphaC = 0;
+            for (const PropagatedTrack & p2 : r.track) {
+                if (!p2.fromPV) continue;
+                float dr2 = ::deltaR2(p.floatEta(), p.floatPhi(), p2.floatEta(), p2.floatPhi());
+                if (dr2 > 0 && dr2 < puppiDr2) {
+                    alphaC += std::pow(std::min(p2.floatPt(), puppiPtMax_),2) / std::max<float>(puppiDr2min, dr2);
+                }
             }
         }
         float alpha = -99, x2 = -99;
@@ -142,15 +158,18 @@ void PFAlgoBase::doVertexing(std::vector<Region> &rs, VertexAlgo algo, float &pv
     int lNBins = int(40./vtxRes_);
     if (algo == TPVtxAlgo) lNBins *= 3;
     std::unique_ptr<TH1F> h_dz(new TH1F("h_dz","h_dz",lNBins,-20,20));
-    for (const Region & r : rs) {
+    if (algo != ExternalVtxAlgo) {
+      for (const Region & r : rs) {
         for (const PropagatedTrack & p : r.track) {
             if (rs.size() > 1) {
                 if (!r.fiducialLocal(p.floatVtxEta(), p.floatVtxPhi())) continue; // skip duplicates
             }
             h_dz->Fill( p.floatDZ(), std::min(p.floatPt(), 50.f) );
         }
+      }
     }
     switch(algo) {
+        case ExternalVtxAlgo: break;
         case OldVtxAlgo: {
                              int imaxbin = h_dz->GetMaximumBin();
                              pvdz = h_dz->GetXaxis()->GetBinCenter(imaxbin);
@@ -181,7 +200,7 @@ void PFAlgoBase::computePuppiMedRMS(const std::vector<Region> &rs, float &alphaC
     std::vector<float> alphaFs;
     std::vector<float> alphaCs;
     int16_t ietacut = std::round(etaCharged_ * CaloCluster::ETAPHI_SCALE);
-    float puppiDr2 = std::pow(puppiDr_,2);
+    float puppiDr2 = std::pow(puppiDr_,2), puppiDr2min = std::pow(puppiDrMin_,2);
     for (const Region & r : rs) {
         for (const PFParticle & p : r.pf) {
             bool central = std::abs(p.hwEta) < ietacut;
@@ -193,9 +212,19 @@ void PFAlgoBase::computePuppiMedRMS(const std::vector<Region> &rs, float &alphaC
             for (const PFParticle & p2 : r.pf) {
                 float dr2 = ::deltaR2(p.floatEta(), p.floatPhi(), p2.floatEta(), p2.floatPhi());
                 if (dr2 > 0 && dr2 < puppiDr2) {
-                    float w = std::pow(p2.floatPt(),2) / std::max<float>(0.01f, dr2);
+                    float w = std::pow(std::min(p2.floatPt(), puppiPtMax_),2) / std::max<float>(puppiDr2min, dr2);
                     alphaF += w;
                     if (p2.chargedPV) alphaC += w;
+                }
+            }
+            if (puppiUsingBareTracks_) {
+                alphaC = 0;
+                for (const PropagatedTrack & p2 : r.track) {
+                    if (!p2.fromPV) continue;
+                    float dr2 = ::deltaR2(p.floatEta(), p.floatPhi(), p2.floatEta(), p2.floatPhi());
+                    if (dr2 > 0 && dr2 < puppiDr2) {
+                        alphaC += std::pow(std::min(p2.floatPt(), puppiPtMax_),2) / std::max<float>(puppiDr2min, dr2);
+                    }
                 }
             }
             if (central) {
