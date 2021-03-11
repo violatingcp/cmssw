@@ -22,6 +22,9 @@
 #include <utility>
 #include <algorithm>
 #include <map>
+#include <unordered_map>
+#include <utility>
+#include <tuple>
 
 // user include files
 #include "FWCore/Framework/interface/ConsumesCollector.h"
@@ -326,7 +329,7 @@ private:
   edm::EDPutTokenT<HBHEChannelInfoCollection> tok_info_;
   edm::EDPutTokenT<std::vector<HBHEChannelInfo>> tok_vinfo_;
   edm::EDPutTokenT<HBHERecHitCollection> tok_rechit_;
-  std::map<int,HcalSiPMnonlinearity> sipmNonlinMap_;
+  std::unordered_map<int,HcalSiPMnonlinearity> sipmNonlinMap_;
 
   // Status bit setters
   const HBHENegativeEFilter* negEFilter_;  // We don't manage this pointer
