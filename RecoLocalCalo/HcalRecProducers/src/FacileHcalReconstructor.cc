@@ -45,7 +45,6 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
     auto data1 = std::make_shared<TritonInput<float>>();
     data1->reserve(hChannelInfo.size());
     client_->setBatchSize(hChannelInfo.size());
-
     hcalIds_.clear();
 
     for (const auto& pChannel : hChannelInfo) {
@@ -70,7 +69,13 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
 
       data1->push_back(input);
     }
-
+    for (int i = hChannelInfo.size(); i < 10000; i++){
+      std::vector<float> input;
+      for (int ii = 0; ii < 45; ii++){
+        input.push_back(0.f);
+      }
+      data1->push_back(input);
+    }
     input1.toServer(data1);
 }
 
