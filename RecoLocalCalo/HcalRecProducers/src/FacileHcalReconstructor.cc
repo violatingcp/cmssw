@@ -10,6 +10,7 @@
 #include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
 #include "Geometry/CaloTopology/interface/HcalTopology.h"
 #include "Geometry/Records/interface/HcalRecNumberingRecord.h"
+#include <vector>
 
 class FacileHcalReconstructor : public TritonEDProducer<> {
 public:
