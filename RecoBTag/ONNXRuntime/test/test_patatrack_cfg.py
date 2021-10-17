@@ -151,7 +151,7 @@ process.out = cms.OutputModule("PoolOutputModule",
                                ## 'patEventContent'
                                #outputCommands = cms.untracked.vstring('drop *', *patEventContentNoCleaning )
                                #outputCommands = cms.untracked.vstring('keep *')
-                               #outputCommands = cms.untracked.vstring('drop *')
+                               outputCommands = cms.untracked.vstring('drop *')
                                )
 
 patAlgosToolsTask = getPatAlgosToolsTask(process)
@@ -164,8 +164,8 @@ process.out.fileName = 'test_particle_net_MINIAODSIM_noragged.root'
 
 process.options = cms.untracked.PSet(
     wantSummary = cms.untracked.bool( True ),
-    numberOfThreads = cms.untracked.uint32( 8 ),
-    numberOfStreams = cms.untracked.uint32( 8 ),
+    numberOfThreads = cms.untracked.uint32( 2 ),
+    numberOfStreams = cms.untracked.uint32( 2 ),
     sizeOfStackForThreadsInKB = cms.untracked.uint32( 100*1024 )
 )
 
