@@ -397,9 +397,6 @@ def customisePixelTrackReconstructionAAS(process):
     process.TritonService.servers.append(
         cms.PSet(
             name = cms.untracked.string("default"),
-            #address = cms.untracked.string("prp-gpu-1.t2.ucsd.edu"),
-            #address = cms.untracked.string("ailab01.fnal.gov"),
-            #port = cms.untracked.uint32(8001),
             address = cms.untracked.string("104.197.15.13"),
             #address = cms.untracked.string("35.226.148.239"),
             port = cms.untracked.uint32(8021),
@@ -409,42 +406,92 @@ def customisePixelTrackReconstructionAAS(process):
     from RecoBTag.ONNXRuntime.patatrack_cff import patatrackSONIC as pttSONIC
     process.hltPTTSONIC      = pttSONIC.clone()
  
+    process.hltSiPixelDigisLegacy = process.hltSiPixelDigis.clone()
+
+    from EventFilter.SiPixelRawToDigi.siPixelDigiErrorsFromSoA_cfi import siPixelDigiErrorsFromSoA as _siPixelDigiErrorsFromSoA
+    process.hltSiPixelDigis = _siPixelDigiErrorsFromSoA.clone(
+        digiErrorSoASrc = "hltSiPixelDigiErrorsSoA",
+        UsePhase1 = True
+    )
+
+    process.hltSiPixelClustersLegacy = process.hltSiPixelClusters.clone(
+        ChannelThreshold = 10
+    )
+
     # convert the pixel digis (except errors) and clusters to the legacy format
     from RecoLocalTracker.SiPixelClusterizer.siPixelDigisClustersFromSoA_cfi import siPixelDigisClustersFromSoA as _siPixelDigisClustersFromSoA
     process.hltSiPixelClusters = _siPixelDigisClustersFromSoA.clone(
-        src = "hltPTTSONIC"
+        src = "hltPTTSONIC",
+        produceDigis = False,
+        storeDigis = False,
+        clusterThreshold_layer1 = process.hltSiPixelClusters.ClusterThreshold_L1,
+        clusterThreshold_otherLayers = process.hltSiPixelClusters.ClusterThreshold
+    )
+
+    process.hltSiPixelDigis = SwitchProducerCUDA(
+        # legacy producer
+        cpu = cms.EDAlias(
+            hltSiPixelDigisClusters = cms.VPSet(
+                cms.PSet(type = cms.string("PixelDigiedmDetSetVector"))
+            ),
+        ),
+        cuda = cms.EDAlias(
+            hltSiPixelDigisClusters = cms.VPSet(
+                cms.PSet(type = cms.string("PixelDigiedmDetSetVector"))
+            ),
+        )
     )
 
     # SwitchProducer wrapping the legacy pixel cluster producer or an alias for the pixel clusters information converted from SoA
-    #process.hltSiPixelClusters = cms.VPSet(
-    #    cms.PSet(type = cms.string("SiPixelClusteredmNewDetSetVector"))
-    #)
-
+    process.hltSiPixelClusters = SwitchProducerCUDA(
+        cpu = cms.EDAlias(
+            hltSiPixelDigisClusters = cms.VPSet(
+                cms.PSet(type = cms.string("SiPixelClusteredmNewDetSetVector"))
+            )
+        ),
+        cuda = cms.EDAlias(
+            hltSiPixelDigisClusters = cms.VPSet(
+                cms.PSet(type = cms.string("SiPixelClusteredmNewDetSetVector"))
+            )
+        )
+     )
     # SwitchProducer wrapping the legacy pixel rechit producer or the transfer of the pixel rechits to the host and the conversion from SoA
     from RecoLocalTracker.SiPixelRecHits.siPixelRecHitFromCUDAaaS_cfi import siPixelRecHitFromCUDAaaS as _siPixelRecHitFromCUDAaaS
     process.hltSiPixelRecHits = _siPixelRecHitFromCUDAaaS.clone(
             pixelRecHitSrc = "hltPTTSONIC",
             src = "hltSiPixelClusters"
+            #src = "hltSiPixelDigisClusters"
     )
 
     # Tasks and Sequences                                                                                                                                                                                                                  
     process.HLTDoLocalPixelTask = cms.Task(
           process.hltPTTSONIC,
-          #process.hltSiPixelDigis,                         # 
-          process.hltSiPixelClusters,                       # SwitchProducer wrapping the legacy pixel cluster producer or an alias for the pixel clusters information converted from SoA                                                  
+          process.hltSiPixelDigisLegacy,
+          process.hltSiPixelDigis,
+          process.hltSiPixelClustersLegacy,                       
+          process.hltSiPixelClusters,                  
           process.hltSiPixelClustersCache,                  # legacy module, used by the legacy pixel quadruplet producer                                                                                                                  
           process.hltSiPixelRecHits                         # SwitchProducer wrapping the legacy pixel rechit producer or the transfer of the pixel rechits to the host and the conversion from SoA
     )
     process.HLTDoLocalPixelSequence = cms.Sequence(process.HLTDoLocalPixelTask)
+
+    from RecoLocalTracker.SiPixelRecHits.siPixelRecHitSoAFromLegacy_cfi import siPixelRecHitSoAFromLegacy as _siPixelRecHitSoAFromLegacy
+    process.hltSiPixelRecHitSoA = _siPixelRecHitSoAFromLegacy.clone(
+        src = "hltSiPixelClusters",
+        beamSpot = "hltOnlineBeamSpot",
+        convertToLegacy = True
+    )
 
     # convert the pixel tracks from SoA to legacy format
     from RecoPixelVertexing.PixelTrackFitting.pixelTrackProducerFromSoA_cfi import pixelTrackProducerFromSoA as _pixelTrackProducerFromSoA
     process.hltPixelTracks = _pixelTrackProducerFromSoA.clone(
         beamSpot = "hltOnlineBeamSpot",
         pixelRecHitLegacySrc = "hltSiPixelRecHits",
-        trackSrc = "hltPTTSONIC"
+        trackSrc = "hltPTTSONIC",
+        minQuality = cms.string('dup'),
     )
     process.HLTRecoPixelTracksTask = cms.Task(
+        process.hltSiPixelRecHitSoA,
         process.hltPixelTracks
     )
     process.HLTRecoPixelTracksSequence = cms.Sequence(process.HLTRecoPixelTracksTask)
@@ -781,16 +828,13 @@ def enablePatatrackPixelTriplets(process):
 
 # customisation for running the Patatrack reconstruction, with automatic offload via CUDA when a supported gpu is available
 def customizeHLTforPatatrack(process):
+    forceGpuOffload()
     print("Customize!!!!")
-    #process = customiseCommon(process)
-    print("Customize!!!! 1")
+    process = customiseCommon(process)
     #process = customisePixelLocalReconstruction(process)
-    print("Customize!!!! 2")
     #process = customisePixelTrackReconstruction(process)
     process  = customisePixelTrackReconstructionAAS(process)
-    print("Customize!!!! 3")
     #process = customiseEcalLocalReconstruction(process)
-    print("Customize!!!! 4")
     #process = customiseHcalLocalReconstruction(process)
     return process
 
