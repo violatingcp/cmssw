@@ -9,6 +9,21 @@ process.hltHbherecopre = process.hltHbhereco.clone(
     makeRecHits = cms.bool(False),
     saveInfos = cms.bool(True),
 )
+process.load("HeterogeneousCore.SonicTriton.TritonService_cff")
+
+process.TritonService.verbose = True
+process.TritonService.fallback.verbose = True
+process.TritonService.servers.append(
+    cms.PSet(
+            name = cms.untracked.string("default"),
+            address = cms.untracked.string("ailab01.fnal.gov"),
+            port = cms.untracked.uint32(8001),
+            useSsl = cms.untracked.bool(False),
+            rootCertificates = cms.untracked.string(""),
+            privateKey = cms.untracked.string(""),
+            certificateChain = cms.untracked.string(""),
+    )
+)
 
 from RecoLocalCalo.HcalRecProducers.facileHcalReconstructor_cfi import sonic_hbheprereco
 process.hltHbhereco = sonic_hbheprereco.clone(

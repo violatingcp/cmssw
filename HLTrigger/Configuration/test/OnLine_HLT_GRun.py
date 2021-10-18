@@ -94032,13 +94032,13 @@ if 'GlobalTag' in process.__dict__:
     from Configuration.AlCa.GlobalTag import GlobalTag as customiseGlobalTag
     process.GlobalTag = customiseGlobalTag(process.GlobalTag, globaltag = 'auto:run3_hlt_GRun')
 
-if 'MessageLogger' in process.__dict__:
-    process.MessageLogger.TriggerSummaryProducerAOD = cms.untracked.PSet()
-    process.MessageLogger.L1GtTrigReport = cms.untracked.PSet()
-    process.MessageLogger.L1TGlobalSummary = cms.untracked.PSet()
-    process.MessageLogger.HLTrigReport = cms.untracked.PSet()
-    process.MessageLogger.FastReport = cms.untracked.PSet()
-    process.MessageLogger.ThroughputService = cms.untracked.PSet()
+#if 'MessageLogger' in process.__dict__:
+#    #process.MessageLogger.TriggerSummaryProducerAOD = cms.untracked.PSet()
+#    #process.MessageLogger.L1GtTrigReport = cms.untracked.PSet()
+#    #process.MessageLogger.L1TGlobalSummary = cms.untracked.PSet()
+#    #process.MessageLogger.HLTrigReport = cms.untracked.PSet()
+#    #process.MessageLogger.FastReport = cms.untracked.PSet()
+#    #process.MessageLogger.ThroughputService = cms.untracked.PSet()
 
 # add specific customizations
 _customInfo = {}
@@ -94049,9 +94049,9 @@ _customInfo['globalTags'][False] = "auto:run3_mc_GRun"
 _customInfo['inputFiles']={}
 _customInfo['inputFiles'][True]  = "file:RelVal_Raw_GRun_DATA.root"
 _customInfo['inputFiles'][False] = "file:RelVal_Raw_GRun_MC.root"
-_customInfo['maxEvents' ]=  100
+_customInfo['maxEvents' ]=  1000
 _customInfo['globalTag' ]= "auto:run3_hlt_GRun"
-_customInfo['inputFile' ]=  ['file:RelVal_Raw_GRun_DATA.root']
+_customInfo['inputFile' ]=  ['/store/relval/CMSSW_11_2_0_pre6_ROOT622/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/112X_mcRun3_2021_realistic_v7-v1/20000/FED4709C-569E-0A42-8FF7-20E565ABE999.root']
 _customInfo['realData'  ]=  True
 from HLTrigger.Configuration.customizeHLTforALL import customizeHLTforAll
 process = customizeHLTforAll(process,"GRun",_customInfo)
