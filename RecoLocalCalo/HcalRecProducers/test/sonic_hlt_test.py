@@ -30,7 +30,7 @@ process.hltHbhereco = sonic_hbheprereco.clone(
     ChannelInfoName = cms.InputTag("hltHbherecopre")
 )
 
-process.maxEvents.input = cms.untracked.int32(10000)
+process.maxEvents.input = cms.untracked.int32(100)
 
 process.HLTDoLocalHcalSequence = cms.Sequence( process.hltHcalDigis + process.hltHbherecopre + process.hltHbhereco + process.hltHfprereco + process.hltHfreco + process.hltHoreco )
 process.HLTStoppedHSCPLocalHcalReco = cms.Sequence( process.hltHcalDigis + process.hltHbherecopre + process.hltHbhereco)
@@ -40,7 +40,7 @@ process.GlobalTag = customiseGlobalTag(process.GlobalTag, globaltag = '120X_mcRu
 
 process.source.fileNames = cms.untracked.vstring("/store/relval/CMSSW_11_2_0_pre6_ROOT622/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/112X_mcRun3_2021_realistic_v7-v1/20000/FED4709C-569E-0A42-8FF7-20E565ABE999.root")
 
-keepMsgs = ['TritonClient','TritonService']
+keepMsgs = ['TritonClient','TritonService','FastTimerService']
 for producer in process._Process__producers.values():
     if hasattr(producer,'Client'):
         if hasattr(producer.Client,'verbose'):
@@ -60,3 +60,16 @@ if 1:
                 limit = cms.untracked.int32(10000000),
             )
         )
+
+# remove any instance of the FastTimerService
+if 'FastTimerService' in process.__dict__:
+    del process.FastTimerService
+
+# instrument the menu with the FastTimerService
+process.load( "HLTrigger.Timer.FastTimerService_cfi" )
+
+# print a text summary at the end of the job
+process.FastTimerService.printEventSummary        = True
+process.FastTimerService.printRunSummary          = True
+process.FastTimerService.printJobSummary          = True
+
