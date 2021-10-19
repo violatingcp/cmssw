@@ -2,6 +2,7 @@ import FWCore.ParameterSet.Config as cms
 
 patatrackSONIC  = cms.EDProducer("PatatrackSonicProducer",
                                InputLabel = cms.InputTag('rawDataCollector'),
+                               beamSpot   = cms.InputTag("hltOnlineBeamSpot"),
                                CablingMapLabel = cms.string(''),
                                #preprocess_json = 'RecoBTag/Combined/data/ParticleNetAK4/CHS/V00/preprocess.json',                                                                                                                          
                                Client = cms.PSet(
@@ -14,7 +15,7 @@ patatrackSONIC  = cms.EDProducer("PatatrackSonicProducer",
                                    modelVersion = cms.string("1"),
                                    verbose = cms.untracked.bool(False),
                                    allowedTries = cms.untracked.uint32(0),
-                                   useSharedMemory = cms.untracked.bool(True),
+                                   useSharedMemory = cms.untracked.bool(False),
                                    compression = cms.untracked.string(""),
                                ),
 
