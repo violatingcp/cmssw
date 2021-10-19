@@ -21,7 +21,7 @@ public:
 
 private:
   edm::InputTag fChannelInfoName_;
-  edm::EDGetTokenT<HBHEChannelInfoCollection> fTokChannelInfo_;
+  edm::EDGetTokenT<std::vector<HBHEChannelInfo>> fTokChannelInfo_;
   std::vector<HcalDetId> hcalIds_;
   edm::ESGetToken<HcalTopology, HcalRecNumberingRecord> htopoToken_;
 
@@ -30,7 +30,7 @@ private:
 FacileHcalReconstructor::FacileHcalReconstructor(edm::ParameterSet const& cfg)
     : TritonEDProducer<>(cfg,"FacileHcalReconstructor"),
       fChannelInfoName_(cfg.getParameter<edm::InputTag>("ChannelInfoName")),
-      fTokChannelInfo_(consumes<HBHEChannelInfoCollection>(fChannelInfoName_)),
+      fTokChannelInfo_(consumes<std::vector<HBHEChannelInfo>>(fChannelInfoName_)),
       htopoToken_(esConsumes<HcalTopology, HcalRecNumberingRecord>()) {
     produces<HBHERecHitCollection>();
     //setDebugName("FacileHcalReconstructor");
@@ -70,13 +70,13 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
 
       data1->push_back(input);
     }
-    for (int i = hChannelInfo.size(); i < 10000; i++){
-      std::vector<float> input;
-      for (int ii = 0; ii < 45; ii++){
-        input.push_back(0.f);
-      }
-      data1->push_back(input);
-    }
+    //for (int i = hChannelInfo.size(); i < 10000; i++){
+    //  std::vector<float> input;
+    //  for (int ii = 0; ii < 45; ii++){
+    //    input.push_back(0.f);
+    //  }
+    //  data1->push_back(input);
+    //}
     input1.toServer(data1);
 }
 

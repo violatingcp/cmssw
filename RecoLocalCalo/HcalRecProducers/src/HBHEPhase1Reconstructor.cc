@@ -804,7 +804,7 @@ void HBHEPhase1Reconstructor::fillDescriptions(edm::ConfigurationDescriptions& d
   desc.add<bool>("processQIE8");
   desc.add<bool>("processQIE11");
   desc.add<bool>("saveInfos");
-  desc.add<bool>("saveInfosVector", false);
+  desc.add<bool>("saveInfosVector", true);
   desc.add<bool>("saveDroppedInfos");
   desc.add<bool>("makeRecHits");
   desc.add<bool>("dropZSmarkedPassed");
