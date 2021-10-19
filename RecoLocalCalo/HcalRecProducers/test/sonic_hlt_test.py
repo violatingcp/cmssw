@@ -30,10 +30,33 @@ process.hltHbhereco = sonic_hbheprereco.clone(
     ChannelInfoName = cms.InputTag("hltHbherecopre")
 )
 
+process.maxEvents.input = cms.untracked.int32(10000)
+
 process.HLTDoLocalHcalSequence = cms.Sequence( process.hltHcalDigis + process.hltHbherecopre + process.hltHbhereco + process.hltHfprereco + process.hltHfreco + process.hltHoreco )
 process.HLTStoppedHSCPLocalHcalReco = cms.Sequence( process.hltHcalDigis + process.hltHbherecopre + process.hltHbhereco)
 
 from Configuration.AlCa.GlobalTag import GlobalTag as customiseGlobalTag
-process.GlobalTag = customiseGlobalTag(process.GlobalTag, globaltag = '112X_mcRun3_2021_realistic_v11')
+process.GlobalTag = customiseGlobalTag(process.GlobalTag, globaltag = '120X_mcRun3_2021_realistic_v2')
 
 process.source.fileNames = cms.untracked.vstring("/store/relval/CMSSW_11_2_0_pre6_ROOT622/RelValTTbar_14TeV/GEN-SIM-DIGI-RAW/112X_mcRun3_2021_realistic_v7-v1/20000/FED4709C-569E-0A42-8FF7-20E565ABE999.root")
+
+keepMsgs = ['TritonClient','TritonService']
+for producer in process._Process__producers.values():
+    if hasattr(producer,'Client'):
+        if hasattr(producer.Client,'verbose'):
+            producer.Client.verbose = True 
+            keepMsgs.extend([producer._TypedParameterizable__type,producer._TypedParameterizable__type+":TritonClient"])
+        if hasattr(producer.Client,'compression'):
+            producer.Client.compression = True 
+        if hasattr(producer.Client,'useSharedMemory'):
+            producer.Client.useSharedMemory = True
+
+if 1:
+    process.load('FWCore/MessageService/MessageLogger_cfi')
+    process.MessageLogger.cerr.FwkReport.reportEvery = 500
+    for msg in keepMsgs:
+        setattr(process.MessageLogger.cerr,msg,
+            cms.untracked.PSet(
+                limit = cms.untracked.int32(10000000),
+            )
+        )

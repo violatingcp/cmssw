@@ -44,7 +44,7 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
     auto& input1 = iInput.begin()->second;
     auto data1 = std::make_shared<TritonInput<float>>();
     data1->reserve(hChannelInfo.size());
-    client_->setBatchSize(10000);
+    client_->setBatchSize(hChannelInfo.size());
 
     hcalIds_.clear();
 
