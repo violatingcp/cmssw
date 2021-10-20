@@ -43,41 +43,50 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
     const HcalTopology* htopo = &iSetup.getData(htopoToken_);
 
     auto& input1 = iInput.begin()->second;
-    auto data1 = std::make_shared<TritonInput<float>>();
-    data1->reserve(hChannelInfo.size());
-    client_->setBatchSize(hChannelInfo.size());
+    //auto data1 = std::make_shared<TritonInput<float>>();
+    //data1->reserve(10000);
+    client_->setBatchSize(10000);
+
+    auto tdata = input1.allocate<float>(true);
+    //data1->reserve(hChannelInfo.size());
+    //client_->setBatchSize(hChannelInfo.size());
     hcalIds_.clear();
 
+    unsigned int i = 0;
     for (const auto& pChannel : hChannelInfo) {
-      std::vector<float> input;
+      //std::vector<float> input;
       const HcalDetId pDetId = pChannel.id();
       hcalIds_.push_back(pDetId);
+      auto& idata = (*tdata)[i];
 
       //inputs for Facile: iphi, gain, raw[8], depth (categorical), ieta (categorical)
-      input.push_back(pDetId.iphi());
-      input.push_back(pChannel.tsGain(0.));
+      idata.push_back(pDetId.iphi());
+      idata.push_back(pChannel.tsGain(0.));
       for (unsigned int itTS = 0; itTS < pChannel.nSamples(); ++itTS) {
-        input.push_back(pChannel.tsRawCharge(itTS));
+        idata.push_back(pChannel.tsRawCharge(itTS));
       }
 
-      for (int itDepth = 1; itDepth <= htopo->maxDepth(); itDepth++) {
-        input.push_back(pDetId.depth() == itDepth);
-      }
+      idata.push_back(pDetId.depth());
+      idata.push_back(pDetId.ietaAbs());
+      i = i+1;
+      //for (int itDepth = 1; itDepth <= htopo->maxDepth(); itDepth++) {
+      //  input.push_back(pDetId.depth() == itDepth);
+      //}
 
-      for (int itIeta = 1; itIeta <= htopo->lastHERing(); itIeta++) {
-        input.push_back(pDetId.ietaAbs() == itIeta);
-      }
+      //for (int itIeta = 1; itIeta <= htopo->lastHERing(); itIeta++) {
+      //  input.push_back(pDetId.ietaAbs() == itIeta);
+      //}
 
-      data1->push_back(input);
+      //data1->push_back(input);
     }
     //for (int i = hChannelInfo.size(); i < 10000; i++){
-    //  std::vector<float> input;
-    //  for (int ii = 0; ii < 45; ii++){
-    //    input.push_back(0.f);
-    //  }
+    //  auto& input = data1[i];
+      //for (int ii = 0; ii < 12; ii++){
+      //  input.push_back(0.f);
+      //}
     //  data1->push_back(input);
     //}
-    input1.toServer(data1);
+    input1.toServer(tdata);
 }
 
 void FacileHcalReconstructor::produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) {
