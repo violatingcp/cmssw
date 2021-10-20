@@ -136,8 +136,8 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   uint32_t rawIdArr_[150000];
   uint16_t adc_ [150000];
   int32_t  clus_[150000];
-  uint32_t hits_[2000];
-  float    pos_ [35000];
+  uint32_t hits_[2001];
+  float    pos_ [35000*3];
   SiPixelErrorCompact  pixerrors_[20];
   
   auto hits   = std::make_unique<SiPixelRecHitsSoA>();
@@ -152,7 +152,7 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy(&nHits,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
   static const unsigned nMax = 2000; 
   //if(nHits_ < 2000) nMax = nHits_;
-  std::memcpy(hits_,&(output.front())+pCount,nMax*sizeof(uint32_t));    pCount += 4*nMax;
+  std::memcpy(hits_,&(output.front())+pCount,(nMax+1)*sizeof(uint32_t));    pCount += 4*(nMax+1);
   std::memcpy(pos_,&(output.front())+pCount,3*nHits*sizeof(float));     pCount += 4*3*nHits;
 
   uint32_t nDigis    = 0; //output[pCount]; pCount++;
