@@ -1,4 +1,5 @@
 #include <cuda_runtime.h>
+#include <fstream>
 
 #include "CondFormats/SiPixelTransient/interface/SiPixelTemplate.h"
 #include "DataFormats/DetId/interface/DetId.h"
@@ -50,8 +51,7 @@ const pixelCPEforGPU::ParamsOnGPU* PixelCPEFast::getGPUProductAsync(cudaStream_t
   const auto& data = gpuData_.dataForCurrentDeviceAsync(cudaStream, [this](GPUData& data, cudaStream_t stream) {
     // and now copy to device...
     cudaCheck(cudaMalloc((void**)&data.paramsOnGPU_h.m_commonParams, sizeof(pixelCPEforGPU::CommonParams)));
-    cudaCheck(cudaMalloc((void**)&data.paramsOnGPU_h.m_detParams,
-                         this->detParamsGPU_.size() * sizeof(pixelCPEforGPU::DetParams)));
+    cudaCheck(cudaMalloc((void**)&data.paramsOnGPU_h.m_detParams,this->detParamsGPU_.size() * sizeof(pixelCPEforGPU::DetParams)));
     cudaCheck(cudaMalloc((void**)&data.paramsOnGPU_h.m_averageGeometry, sizeof(pixelCPEforGPU::AverageGeometry)));
     cudaCheck(cudaMalloc((void**)&data.paramsOnGPU_h.m_layerGeometry, sizeof(pixelCPEforGPU::LayerGeometry)));
     cudaCheck(cudaMalloc((void**)&data.paramsOnGPU_d, sizeof(pixelCPEforGPU::ParamsOnGPU)));
@@ -78,7 +78,16 @@ const pixelCPEforGPU::ParamsOnGPU* PixelCPEFast::getGPUProductAsync(cudaStream_t
                               this->detParamsGPU_.size() * sizeof(pixelCPEforGPU::DetParams),
                               cudaMemcpyDefault,
                               stream));
-  });
+    });
+
+  std::ofstream out("cpe.bin", std::ios::binary | std::ios::out);
+  out.write(reinterpret_cast<char *>((void*) &this->commonParamsGPU_),   sizeof(pixelCPEforGPU::CommonParams));
+  unsigned int ndetParams =  this->detParamsGPU_.size();
+  out.write(reinterpret_cast<char *>(&ndetParams), sizeof(unsigned int)); 
+  out.write(reinterpret_cast<char *>((void*)this->detParamsGPU_.data()),      this->detParamsGPU_.size() * sizeof(pixelCPEforGPU::DetParams));
+  out.write(reinterpret_cast<char *>((void*)&this->averageGeometry_),sizeof(pixelCPEforGPU::AverageGeometry));
+  out.write(reinterpret_cast<char *>((void*)&this->layerGeometry_),  sizeof(pixelCPEforGPU::LayerGeometry));
+  out.close();
   return data.paramsOnGPU_d;
 }
 
@@ -175,7 +184,6 @@ void PixelCPEFast::fillParamsForGpu() {
 
     g.apeXX = lape.xx();
     g.apeYY = lape.yy();
-
     auto toMicron = [&](float x) { return std::min(511, int(x * 1.e4f + 0.5f)); };
 
     {
@@ -276,6 +284,7 @@ void PixelCPEFast::fillParamsForGpu() {
       g.xfact[kk] *= detx;
       g.yfact[kk] *= dety;
     }
+    std::cout << "Pixel CPE----> " << i << " -- " << g.apeXX << " -- " << g.apeYY << " -- " << int(g.sx2) << " -- " << int(g.sy1) << " -- " << int(g.sy2) << " -- " << g.minCh[0] << " -- " << g.minCh[1] << " -- " << g.minCh[2] << std::endl; 
     // sample y in "angle"  (estimated from cluster size)
     float ys = 8.f - 4.f;  // apperent bias of half pixel (see plot)
     // sample yerr as function of "size"
