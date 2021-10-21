@@ -2,7 +2,6 @@
 
 #include <fmt/printf.h>
 
-
 #include "CUDADataFormats/Common/interface/Product.h"
 #include "CUDADataFormats/Common/interface/HostProduct.h"
 #include "DataFormats/Common/interface/DetSetVectorNew.h"
@@ -62,24 +61,10 @@ void SiPixelRecHitFromCUDAaaS::produce(edm::Event& iEvent, edm::EventSetup const
   edm::Handle<SiPixelRecHitsSoA> hits     = iEvent.getHandle(hitsToken_);
   nHits_ = hits->size();
 
-  /*
-  std::cout <<" ----> Hits Info " << hits->size() << std::endl;
-  for(unsigned i0 = 0; i0 < hits->hitsVector().size(); i0++) { 
-    std::cout << i0 <<" ----> " << hits->hitsVector()[i0] << " -- " <<  std::endl;
-  } 
-  std::cout << " ---> Hits Info " << std::endl;
-  */
-  /*
-  std::cout <<" ----> Hits position " << std::endl;
-  for(unsigned i0 = 0; i0 < hits->posVector().size()/3; i0++) { 
-    std::cout <<" ----> " << hits->posVector()[i0] << " -- " <<  hits->posVector()[hits->posVector().size()/3+1] << " -- " <<  hits->posVector()[2*hits->posVector().size()/3+i0] << std::endl;
-  } 
-  std::cout << " ---> Hits position " << std::endl;
-  */
-
   auto hmsp = std::make_unique<uint32_t[]>(gpuClustering::maxNumModules + 1);
   SiPixelRecHitCollection output;
   output.reserve(gpuClustering::maxNumModules, nHits_);
+
   if (0 == nHits_) {
     iEvent.emplace(rechitsPutToken_, std::move(output));
     iEvent.emplace(hostPutToken_, std::move(hmsp));

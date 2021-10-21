@@ -13,6 +13,7 @@
 #include "DataFormats/SiPixelDigi/interface/SiPixelDigisSoA.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/BeamSpot/interface/BeamSpotPOD.h"
+#include "DataFormats/SiPixelRawData/interface/SiPixelErrorsSoA.h"
 #include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
 #include "CUDADataFormats/Vertex/interface/ZVertexHeterogeneous.h"
 
@@ -44,12 +45,14 @@ private:
   const edm::EDGetTokenT<reco::BeamSpot> bsGetToken_;
   edm::EDPutTokenT<SiPixelRecHitsSoA> hitsSOA_;
   edm::EDPutTokenT<SiPixelDigisSoA> digiPutToken_;
+  edm::EDPutTokenT<SiPixelErrorsSoA> digiErrorPutToken_;
 
   edm::EDPutTokenT<ZVertexHeterogeneous> vertexSOA_;
   edm::EDPutTokenT<PixelTrackHeterogeneous> trackSOA_;
-
+  
   PixelDataFormatter::Errors errors_;
   std::vector<unsigned int> fedIds_;
+  const SiPixelFormatterErrors* formatterErrors_ = nullptr;
   bool debug_ = false;
 };
 
@@ -61,9 +64,11 @@ PatatrackSonicProducer::PatatrackSonicProducer(const edm::ParameterSet &iConfig)
       bsGetToken_{consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("beamSpot"))},
       hitsSOA_(produces<SiPixelRecHitsSoA>()),
       digiPutToken_(produces<SiPixelDigisSoA>()),
+      digiErrorPutToken_(produces<SiPixelErrorsSoA>()),
       vertexSOA_(produces<ZVertexHeterogeneous>()),
       trackSOA_(produces<PixelTrackHeterogeneous>()),
       debug_(iConfig.getUntrackedParameter<bool>("debugMode", false)) {
+	formatterErrors_ = new SiPixelFormatterErrors();
 }
 
 void PatatrackSonicProducer::acquire(edm::Event const &iEvent, edm::EventSetup const &iSetup, Input &iInput) {
@@ -131,8 +136,10 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   uint32_t rawIdArr_[150000];
   uint16_t adc_ [150000];
   int32_t  clus_[150000];
-  uint32_t hits_[2000];
-  float    pos_ [35000];
+  uint32_t hits_[2001];
+  float    pos_ [35000*3];
+  SiPixelErrorCompact  pixerrors_[20];
+  
   auto hits   = std::make_unique<SiPixelRecHitsSoA>();
   auto tracks = std::make_unique<pixelTrack::TrackSoA>();
 
@@ -145,7 +152,7 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy(&nHits,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
   static const unsigned nMax = 2000; 
   //if(nHits_ < 2000) nMax = nHits_;
-  std::memcpy(hits_,&(output.front())+pCount,nMax*sizeof(uint32_t));    pCount += 4*nMax;
+  std::memcpy(hits_,&(output.front())+pCount,(nMax+1)*sizeof(uint32_t));    pCount += 4*(nMax+1);
   std::memcpy(pos_,&(output.front())+pCount,3*nHits*sizeof(float));     pCount += 4*3*nHits;
 
   uint32_t nDigis    = 0; //output[pCount]; pCount++;
@@ -154,6 +161,11 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy(rawIdArr_,&(output.front())+pCount,nDigis*sizeof(uint32_t)); pCount += 4*nDigis;
   std::memcpy(adc_,     &(output.front())+pCount,nDigis*sizeof(uint16_t)); pCount += 2*nDigis;
   std::memcpy(clus_,    &(output.front())+pCount,nDigis*sizeof(int32_t));  pCount += 4*nDigis;
+
+  uint32_t nErrors = 0; 
+  std::memcpy(&nErrors,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
+  std::memcpy(pixerrors_, &(output.front())+pCount,10*nErrors);     pCount += 10*nErrors;
+  //if(nErrors > 2) std::cout << " -errors- " << pixerrors_[0].rawId << " -- " << pixerrors_[0].word << " -- " << pixerrors_[0].errorType << " -- " << pixerrors_[0].fedId << std::endl;
 
   unsigned int nTracks = 0;//output[pCount]; pCount++;
   std::memcpy(&nTracks,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
@@ -167,7 +179,7 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy((*tracks).hitIndices.off.data(),           &(output.front())+pCount,(nTracks+1)*sizeof(int32_t));    pCount+=4*(nTracks+1);
   std::memcpy((void*)(*tracks).detIndices.content.data(),&(output.front())+pCount,nTracks*sizeof(uint32_t)*5);     pCount+=4*(nTracks*5);
   std::memcpy((*tracks).detIndices.off.data(),           &(output.front())+pCount,(nTracks+1)*sizeof(int32_t));    pCount+=4*(nTracks+1);
-
+  std::cout << " -- " << tracks->chi2(0) << " -- " << int(tracks->quality(0)) << " -- " << tracks->stateAtBS.state(0)[0] << " -- " <<  tracks->hitIndices.content[0] << " -- " << tracks->detIndices.size() << std::endl;
 
   auto vertices = std::make_unique<ZVertexSoA>();
   static constexpr uint32_t MAXTRACKS = 32 * 1024;
@@ -181,8 +193,11 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy((vertices)->ndof   , &(output.front())+pCount,MAXVTX*sizeof(int32_t));      pCount+=4*MAXVTX;
   std::memcpy((vertices)->sortInd, &(output.front())+pCount,MAXVTX*sizeof(uint16_t));     pCount+=4*MAXVTX;
 
+  std::cout << "---> " << nTracks << " -- " << vertices->nvFinal << std::endl;
+
   iEvent.emplace(hitsSOA_,      nHits, hits_, pos_); 
   iEvent.emplace(digiPutToken_, nDigis, pdigi_, rawIdArr_, adc_, clus_);
+  iEvent.emplace(digiErrorPutToken_, nErrors, pixerrors_, formatterErrors_);
   iEvent.emplace(trackSOA_,  PixelTrackHeterogeneous(std::move(tracks)));
   iEvent.emplace(vertexSOA_, ZVertexHeterogeneous(std::move(vertices)));
 }
