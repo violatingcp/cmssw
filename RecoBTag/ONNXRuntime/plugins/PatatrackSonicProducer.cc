@@ -190,7 +190,7 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy((vertices)->wv     , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
   std::memcpy((vertices)->chi2   , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
   std::memcpy((vertices)->ptv2   , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
-  std::memcpy((vertices)->ndof   , &(output.front())+pCount,MAXVTX*sizeof(int32_t));      pCount+=4*MAXVTX;
+  std::memcpy((vertices)->ndof   , &(output.front())+pCount,MAXVTX*sizeof(int32_t));      pCount+=4*MAXTRACKS; //PTT guys are crazy
   std::memcpy((vertices)->sortInd, &(output.front())+pCount,MAXVTX*sizeof(uint16_t));     pCount+=4*MAXVTX;
 
   std::cout << "---> " << nTracks << " -- " << vertices->nvFinal << std::endl;
