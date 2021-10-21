@@ -165,8 +165,8 @@ process.out.fileName = 'test_particle_net_MINIAODSIM_noragged.root'
 
 process.options = cms.untracked.PSet(
     wantSummary = cms.untracked.bool( True ),
-    numberOfThreads = cms.untracked.uint32( 2 ),
-    numberOfStreams = cms.untracked.uint32( 2 ),
+    numberOfThreads = cms.untracked.uint32( 4 ),
+    numberOfStreams = cms.untracked.uint32( 4 ),
     sizeOfStackForThreadsInKB = cms.untracked.uint32( 100*1024 )
 )
 
