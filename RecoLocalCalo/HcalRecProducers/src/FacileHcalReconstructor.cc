@@ -49,8 +49,8 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
     client_->setBatchSize(hChannelInfo.size());
 
     auto tdata = input.allocate<float>(true);
-    auto tdata_depth = input_depth.allocate<int>(true);
-    auto tdata_ieta = input_ieta.allocate<int>(true);
+    auto tdata_depth = input_depth.allocate<float>(true);
+    auto tdata_ieta = input_ieta.allocate<float>(true);
 
     hcalIds_.clear();
     hcalIds_.reserve(hChannelInfo.size());
