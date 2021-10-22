@@ -42,32 +42,38 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
 
     const HcalTopology* htopo = &iSetup.getData(htopoToken_);
 
-    auto& input1 = iInput.begin()->second;
-    //auto data1 = std::make_shared<TritonInput<float>>();
-    //data1->reserve(10000);
-    client_->setBatchSize(10000);
+    auto& input = iInput.at("continuousinputs");
+    auto& input_depth = iInput.at("depth");
+    auto& input_ieta = iInput.at("ieta");
+    //auto& input1 = iInput.begin()->second;
+    client_->setBatchSize(hChannelInfo.size());
 
-    auto tdata = input1.allocate<float>(true);
-    //data1->reserve(hChannelInfo.size());
-    //client_->setBatchSize(hChannelInfo.size());
+    auto tdata = input.allocate<float>(true);
+    auto tdata_depth = input_depth.allocate<int>(true);
+    auto tdata_ieta = input_ieta.allocate<int>(true);
+
     hcalIds_.clear();
-
+    hcalIds_.reserve(hChannelInfo.size());
     unsigned int i = 0;
     for (const auto& pChannel : hChannelInfo) {
       //std::vector<float> input;
       const HcalDetId pDetId = pChannel.id();
       hcalIds_.push_back(pDetId);
       auto& idata = (*tdata)[i];
+      auto& idata_depth = (*tdata_depth)[i];
+      auto& idata_ieta = (*tdata_ieta)[i];
 
       //inputs for Facile: iphi, gain, raw[8], depth (categorical), ieta (categorical)
-      idata.push_back(pDetId.iphi());
-      idata.push_back(pChannel.tsGain(0.));
+      //idata["iphi"].push_back(pDetId.iphi());
+      //idata["gain"].push_back(pChannel.tsGain(0.));
       for (unsigned int itTS = 0; itTS < pChannel.nSamples(); ++itTS) {
         idata.push_back(pChannel.tsRawCharge(itTS));
       }
+      idata.push_back(pChannel.tsGain(0.));
+      idata.push_back(pDetId.iphi());
 
-      idata.push_back(pDetId.depth());
-      idata.push_back(pDetId.ietaAbs());
+      idata_ieta.push_back(pDetId.ietaAbs());
+      idata_depth.push_back(pDetId.depth());
       i = i+1;
       //for (int itDepth = 1; itDepth <= htopo->maxDepth(); itDepth++) {
       //  input.push_back(pDetId.depth() == itDepth);
@@ -86,7 +92,9 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
       //}
     //  data1->push_back(input);
     //}
-    input1.toServer(tdata);
+    input.toServer(tdata);
+    input_ieta.toServer(tdata_ieta);
+    input_depth.toServer(tdata_depth);
 }
 
 void FacileHcalReconstructor::produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) {
@@ -94,14 +102,15 @@ void FacileHcalReconstructor::produce(edm::Event& iEvent, edm::EventSetup const&
     out = std::make_unique<HBHERecHitCollection>();
     out->reserve(hcalIds_.size());
 
-    const auto& output1 = iOutput.begin()->second;
+    const auto& output1 = iOutput.at("output"); //begin()->second;
     const auto& outputs = output1.fromServer<float>();
     for (std::size_t iB = 0; iB < hcalIds_.size(); iB++) {
       float rhE = outputs[iB][0];
       if (rhE < 0.f or std::isnan(rhE) or std::isinf(rhE))
         rhE = 0;
-
       HBHERecHit rh(hcalIds_[iB], rhE, 0.f, 0.f);
+      std::cout << "Hcal ieta/iphi" << rh.id().ietaAbs() << "/" << rh.id().iphi() << "\n" <<
+          "\tenergy:" << rhE << std::endl;
       out->push_back(rh);
     }
     iEvent.put(std::move(out));

@@ -606,7 +606,14 @@ void HBHEPhase1Reconstructor::processData(const Collection& coll,
       if (rh.id().rawId()) {
         setAsicSpecificBits(frame, coder, *channelInfo, *properties.calib, soi, &rh);
         setCommonStatusBits(*channelInfo, *properties.calib, &rh);
+	std::cout << "HcalRecHit" << std::endl;
+	std::cout << "Raw: " << channelInfo->tsRawCharge(0) << "/" << channelInfo->tsRawCharge(1) << "/" << channelInfo->tsRawCharge(2) << "/" << channelInfo->tsRawCharge(3) << "/" << channelInfo->tsRawCharge(4) << "/" << channelInfo->tsRawCharge(5) << "/" << channelInfo->tsRawCharge(6) << "/" << channelInfo->tsRawCharge(7) <<  std::endl;
+        std::cout << "Gain: " <<channelInfo->tsGain(0) << std::endl;
+        std::cout << "ieta/iphi: " << rh.id().ietaAbs() << "/" << rh.id().iphi() << "\n" <<
+          "\tenergy: " << rh.energy() << std::endl;
+	std::cout << "depth: " << rh.id().depth() << std::endl;
         rechits->push_back(rh);
+
       }
     }
   }

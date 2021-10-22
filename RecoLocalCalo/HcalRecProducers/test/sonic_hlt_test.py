@@ -31,7 +31,7 @@ process.hltHbhereco = sonic_hbheprereco.clone(
     ChannelInfoName = cms.InputTag("hltHbherecopre")
 )
 
-process.maxEvents.input = cms.untracked.int32(10000)
+process.maxEvents.input = cms.untracked.int32(1)
 
 process.HLTDoLocalHcalSequence = cms.Sequence( process.hltHcalDigis + process.hltHbherecopre + process.hltHbhereco + process.hltHfprereco + process.hltHfreco + process.hltHoreco )
 process.HLTStoppedHSCPLocalHcalReco = cms.Sequence( process.hltHcalDigis + process.hltHbherecopre + process.hltHbhereco)

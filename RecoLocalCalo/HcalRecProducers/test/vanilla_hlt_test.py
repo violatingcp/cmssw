@@ -4,7 +4,7 @@ import os,sys
 sys.path = sys.path + [os.path.expandvars("$CMSSW_BASE/src/HLTrigger/Configuration/test/"), os.path.expandvars("$CMSSW_RELEASE_BASE/src/HLTrigger/Configuration/test/")]
 
 from OnLine_HLT_GRun import process
-process.maxEvents.input = cms.untracked.int32(10000)
+process.maxEvents.input = cms.untracked.int32(1)
 
 from Configuration.AlCa.GlobalTag import GlobalTag as customiseGlobalTag
 process.GlobalTag = customiseGlobalTag(process.GlobalTag, globaltag = '120X_mcRun3_2021_realistic_v2')
