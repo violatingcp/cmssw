@@ -7,6 +7,8 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 
+#include "Geometry/Records/interface/TrackerDigiGeometryRecord.h"
+#include "Geometry/TrackerGeometryBuilder/interface/TrackerGeometry.h"
 #include "CondFormats/DataRecord/interface/SiPixelFedCablingMapRcd.h"
 #include "CondFormats/SiPixelObjects/interface/SiPixelFedCablingMap.h"
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
@@ -16,6 +18,9 @@
 #include "DataFormats/SiPixelRawData/interface/SiPixelErrorsSoA.h"
 #include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
 #include "CUDADataFormats/Vertex/interface/ZVertexHeterogeneous.h"
+#include "RecoLocalTracker/Records/interface/TkPixelCPERecord.h"
+#include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEBase.h"
+#include "RecoLocalTracker/SiPixelRecHits/interface/PixelCPEFast.h"
 
 #include "HeterogeneousCore/SonicTriton/interface/TritonEDProducer.h"
 #include "HeterogeneousCore/SonicTriton/interface/TritonData.h"
@@ -43,13 +48,14 @@ private:
 
   edm::EDGetTokenT<FEDRawDataCollection> rawGetToken_;
   const edm::EDGetTokenT<reco::BeamSpot> bsGetToken_;
+
   edm::EDPutTokenT<SiPixelRecHitsSoA> hitsSOA_;
   edm::EDPutTokenT<SiPixelDigisSoA> digiPutToken_;
   edm::EDPutTokenT<SiPixelErrorsSoA> digiErrorPutToken_;
 
   edm::EDPutTokenT<ZVertexHeterogeneous> vertexSOA_;
   edm::EDPutTokenT<PixelTrackHeterogeneous> trackSOA_;
-  
+
   PixelDataFormatter::Errors errors_;
   std::vector<unsigned int> fedIds_;
   const SiPixelFormatterErrors* formatterErrors_ = nullptr;
@@ -104,21 +110,21 @@ void PatatrackSonicProducer::acquire(edm::Event const &iEvent, edm::EventSetup c
 
   //Now deal with FEDs
   vin.push_back(fedIds_.size()); pSize++;
-  //ErrorChecker errorcheck;
-  //bool errorsInEvent = false;
-  //errors_.clear();
+  ErrorChecker errorcheck;
+  bool errorsInEvent = false;
+  errors_.clear();
   for (unsigned int fedId : fedIds_) {
     vin.push_back(fedId); pSize++;
     const FEDRawData& rawData = buffers.FEDData(fedId);
-    //int nWords = rawData.size() / sizeof(uint64_t);
-    //if (nWords == 0) {
-    //  std::cout << " !!!! Continuing " << std::endl;
-    //  continue;
-    //}
-    //const cms_uint64_t* trailer = reinterpret_cast<const cms_uint64_t*>(rawData.data()) + (nWords - 1);
-    //if (not errorcheck.checkCRC(errorsInEvent, fedId, trailer, errors_)) {
-    //  continue;
-    //}
+    int nWords = rawData.size() / sizeof(uint64_t);
+    if (nWords == 0) {
+      std::cout << " !!!! Continuing " << std::endl;
+      continue;
+    }
+    const cms_uint64_t* trailer = reinterpret_cast<const cms_uint64_t*>(rawData.data()) + (nWords - 1);
+    if (not errorcheck.checkCRC(errorsInEvent, fedId, trailer, errors_)) {
+      continue;
+    }
     unsigned int rawsize=rawData.size()/4;
     vin.push_back(rawsize); pSize++;
     vin.resize(vin.size()+rawsize);
@@ -137,7 +143,7 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   uint16_t adc_ [150000];
   int32_t  clus_[150000];
   uint32_t hits_[2001];
-  float    pos_ [35000*3];
+  float    pos_ [4*35000];
   SiPixelErrorCompact  pixerrors_[20];
   
   auto hits   = std::make_unique<SiPixelRecHitsSoA>();
@@ -153,7 +159,7 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   static const unsigned nMax = 2000; 
   //if(nHits_ < 2000) nMax = nHits_;
   std::memcpy(hits_,&(output.front())+pCount,(nMax+1)*sizeof(uint32_t));    pCount += 4*(nMax+1);
-  std::memcpy(pos_,&(output.front())+pCount,3*nHits*sizeof(float));     pCount += 4*3*nHits;
+  std::memcpy(pos_,&(output.front())+pCount,4*nHits*sizeof(float));     pCount += 4*4*nHits;
 
   uint32_t nDigis    = 0; //output[pCount]; pCount++;
   std::memcpy(&nDigis,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
@@ -161,7 +167,7 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy(rawIdArr_,&(output.front())+pCount,nDigis*sizeof(uint32_t)); pCount += 4*nDigis;
   std::memcpy(adc_,     &(output.front())+pCount,nDigis*sizeof(uint16_t)); pCount += 2*nDigis;
   std::memcpy(clus_,    &(output.front())+pCount,nDigis*sizeof(int32_t));  pCount += 4*nDigis;
-
+  
   uint32_t nErrors = 0; 
   std::memcpy(&nErrors,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
   std::memcpy(pixerrors_, &(output.front())+pCount,10*nErrors);     pCount += 10*nErrors;
@@ -179,8 +185,9 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy((*tracks).hitIndices.off.data(),           &(output.front())+pCount,(nTracks+1)*sizeof(int32_t));    pCount+=4*(nTracks+1);
   std::memcpy((void*)(*tracks).detIndices.content.data(),&(output.front())+pCount,nTracks*sizeof(uint32_t)*5);     pCount+=4*(nTracks*5);
   std::memcpy((*tracks).detIndices.off.data(),           &(output.front())+pCount,(nTracks+1)*sizeof(int32_t));    pCount+=4*(nTracks+1);
-  std::cout << " -- " << tracks->chi2(0) << " -- " << int(tracks->quality(0)) << " -- " << tracks->stateAtBS.state(0)[0] << " -- " <<  tracks->hitIndices.content[0] << " -- " << tracks->detIndices.size() << std::endl;
-
+  tracks->detIndices.psws = 0;
+  tracks->hitIndices.psws = 0;
+  
   auto vertices = std::make_unique<ZVertexSoA>();
   static constexpr uint32_t MAXTRACKS = 32 * 1024;
   static constexpr uint32_t MAXVTX = 1024;
@@ -190,10 +197,8 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy((vertices)->wv     , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
   std::memcpy((vertices)->chi2   , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
   std::memcpy((vertices)->ptv2   , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
-  std::memcpy((vertices)->ndof   , &(output.front())+pCount,MAXVTX*sizeof(int32_t));      pCount+=4*MAXTRACKS; //PTT guys are crazy
-  std::memcpy((vertices)->sortInd, &(output.front())+pCount,MAXVTX*sizeof(uint16_t));     pCount+=4*MAXVTX;
-
-  std::cout << "---> " << nTracks << " -- " << vertices->nvFinal << std::endl;
+  std::memcpy((vertices)->ndof   , &(output.front())+pCount,MAXTRACKS*sizeof(int32_t));   pCount+=4*MAXVTX;
+  std::memcpy((vertices)->sortInd, &(output.front())+pCount,MAXVTX*sizeof(uint16_t));     pCount+=2*MAXVTX;
 
   iEvent.emplace(hitsSOA_,      nHits, hits_, pos_); 
   iEvent.emplace(digiPutToken_, nDigis, pdigi_, rawIdArr_, adc_, clus_);
@@ -209,7 +214,7 @@ void PatatrackSonicProducer::fillDescriptions(edm::ConfigurationDescriptions& de
   desc.add<edm::InputTag>("beamSpot");
   desc.add<std::string>("CablingMapLabel");
   desc.addOptionalUntracked<bool>("debugMode", false);
-  descriptions.add("deepMETSonicProducer", desc);
+  descriptions.add("PatatrackSonicProducer", desc);
 }
 
 //define this as a plug-in

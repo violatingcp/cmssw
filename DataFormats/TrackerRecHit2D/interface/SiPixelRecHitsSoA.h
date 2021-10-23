@@ -11,7 +11,7 @@ class SiPixelRecHitsSoA {
   SiPixelRecHitsSoA() = default;
   explicit SiPixelRecHitsSoA(size_t nhits, const uint32_t* hits, const float* pos);
   ~SiPixelRecHitsSoA() = default;
-  auto size() const { return pos_.size()/3; }
+  auto size() const { return pos_.size()/4; }
 
   uint32_t hits(size_t i) const { return hits_[i]; }
   float    pos(size_t i) const { return pos_[i]; }
