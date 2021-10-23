@@ -4,4 +4,4 @@
 
 SiPixelRecHitsSoA::SiPixelRecHitsSoA(size_t nhits, const uint32_t *hits, const float *pos)
   : hits_(hits, hits + 2000),
-    pos_(pos,   pos + 3*nhits){}
+    pos_(pos,   pos + 4*nhits){}

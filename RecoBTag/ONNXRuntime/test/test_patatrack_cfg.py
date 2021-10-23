@@ -6,7 +6,7 @@ options = VarParsing('analysis')
 options.inputFiles  = 'file:tmp.root'
 #options.inputFiles = '/store/mc/RunIIFall17MiniAODv2/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/MINIAODSIM/PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/90000/DCFE3F5F-AE42-E811-B6DB-008CFAF72A64.root'
 #options.inputFiles = 'file:/storage/local/data1/home/jduarte1/forPatrick/FFA0194D-1BBC-EF4F-9B8F-8FBED2C62FC8.root'
-options.maxEvents = -1
+options.maxEvents = 400
 options.parseArguments()
 
 from Configuration.ProcessModifiers.enableSonicTriton_cff import enableSonicTriton
@@ -61,7 +61,7 @@ process.load("Configuration.Geometry.GeometryRecoDB_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase1_2017_realistic')
-process.load("Configuration.StandardSequences.MagneticField_cff")
+#process.load("Configuration.StandardSequences.MagneticField_cff")
 
 
 #process.test  = cms.EDProducer("PatatrackSonicProducer",
@@ -120,7 +120,7 @@ process.hltPixelTracks = _pixelTrackProducerFromSoA.clone(
     pixelRecHitLegacySrc = "hltSiPixelRecHits",
     trackSrc = "hltPTTSONIC",
     #minNumberOfHits = cms.int32(0),
-    #minQuality = cms.string('dup'),
+    minQuality = cms.string('dup'),
 )
 
 from RecoPixelVertexing.PixelVertexFinding.pixelVertexFromSoA_cfi import pixelVertexFromSoA as _pixelVertexFromSoA
@@ -131,11 +131,11 @@ process.hltPixelVertices = _pixelVertexFromSoA.clone(
 )
 
 process.p = cms.Path(
-    process.hltPTTSONIC*
-    process.hltSiPixelClusters*
-    process.hltSiPixelRecHits*
-    process.hltPixelTracks*
-    process.hltPixelVertices
+    process.hltPTTSONIC#*
+    #process.hltSiPixelClusters*
+    #process.hltSiPixelRecHits*
+    #process.hltPixelTracks*
+    #process.hltPixelVertices
 )
 
 #process.p = cms.Path(process.test)
@@ -165,8 +165,8 @@ process.out.fileName = 'test_particle_net_MINIAODSIM_noragged.root'
 
 process.options = cms.untracked.PSet(
     wantSummary = cms.untracked.bool( True ),
-    numberOfThreads = cms.untracked.uint32( 4 ),
-    numberOfStreams = cms.untracked.uint32( 4 ),
+    numberOfThreads = cms.untracked.uint32( 2 ),
+    numberOfStreams = cms.untracked.uint32( 2 ),
     sizeOfStackForThreadsInKB = cms.untracked.uint32( 100*1024 )
 )
 
