@@ -6,7 +6,7 @@ from RecoLocalCalo.HcalRecProducers.HBHEIsolatedNoiseReflagger_cfi import hbhere
 hbhereco = SwitchProducerCUDA(
     cpu = _phase0_hbhereco.clone()
 )
-hcalGlobalRecoTask = cms.Task(hbhereco)
+hcalGlobalRecoTask = cms.Task(hbhereco.cpu)
 hcalGlobalRecoSequence = cms.Sequence(hcalGlobalRecoTask)
 
 hcalOnlyGlobalRecoTask = cms.Task()
@@ -17,7 +17,7 @@ from Configuration.Eras.Modifier_run3_HB_cff import run3_HB
 
 from RecoLocalCalo.HcalRecProducers.HBHEPhase1Reconstructor_cfi import hbheprereco as _phase1_hbheprereco
 run3_HB.toReplaceWith(hbhereco.cpu, _phase1_hbheprereco)
-run3_HB.toReplaceWith(hcalOnlyGlobalRecoTask, cms.Task(hbhereco))
+run3_HB.toReplaceWith(hcalOnlyGlobalRecoTask, cms.Task(hbhereco.cpu))
 
 #--- for Run 3 on GPU
 from Configuration.ProcessModifiers.gpu_cff import gpu
@@ -28,15 +28,17 @@ from RecoLocalCalo.HcalRecProducers.hcalCPURecHitsProducer_cfi import hcalCPURec
         produceSoA = False
     )
 )
-run3_HB.toReplaceWith( hbhereco, _phase1_hbheprereco ) # >=Run3
+run3_HB.toReplaceWith( hbhereco.cpu, _phase1_hbheprereco ) # >=Run3
 
 #--- ML-based reco using SONIC+Triton
 hbhechannelinfo = _phase1_hbheprereco.clone(
     makeRecHits = False,
     saveInfos = True,
     processQIE8 = False,
+    saveInfosVector = True,
+
 )
 from RecoLocalCalo.HcalRecProducers.facileHcalReconstructor_cfi import sonic_hbheprereco as _sonic_hbheprereco
 from Configuration.ProcessModifiers.enableSonicTriton_cff import enableSonicTriton
-(enableSonicTriton & run3_HB).toReplaceWith(hbhereco, _sonic_hbheprereco)
+(enableSonicTriton & run3_HB).toReplaceWith(hbhereco.cpu, _sonic_hbheprereco)
 (enableSonicTriton & run3_HB).toModify(hcalGlobalRecoTask, lambda x: x.add(hbhechannelinfo))
