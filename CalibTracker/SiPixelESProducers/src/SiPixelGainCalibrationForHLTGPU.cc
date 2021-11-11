@@ -1,4 +1,5 @@
 #include <cuda.h>
+#include <fstream> 
 
 #include "CalibTracker/SiPixelESProducers/interface/SiPixelGainCalibrationForHLTGPU.h"
 #include "CondFormats/SiPixelObjects/interface/SiPixelGainCalibrationForHLT.h"
@@ -10,7 +11,7 @@
 
 SiPixelGainCalibrationForHLTGPU::SiPixelGainCalibrationForHLTGPU(const SiPixelGainCalibrationForHLT& gains,
                                                                  const TrackerGeometry& geom)
-    : gains_(&gains) {
+  : gains_(&gains) {
   // bizzarre logic (looking for fist strip-det) don't ask
   auto const& dus = geom.detUnits();
   unsigned int n_detectors = dus.size();
@@ -72,6 +73,13 @@ SiPixelGainCalibrationForHLTGPU::SiPixelGainCalibrationForHLTGPU(const SiPixelGa
     if (ind[i].detid != dus[i]->geographicalId())
       LogDebug("SiPixelGainCalibrationForHLTGPU") << ind[i].detid << "!=" << dus[i]->geographicalId();
   }
+  std::ofstream out("gain.bin", std::ios::binary | std::ios::out);
+  out.write(reinterpret_cast<char*>(gainForHLTonHost_), sizeof(SiPixelGainForHLTonGPU));
+  unsigned int nbytes = gains_->data().size();
+  std::cout << " --> gain : " << nbytes << " -- " <<  gainForHLTonHost_->pedPrecision_ << " -- " << gains_->data()[0] << std::endl; 
+  out.write(reinterpret_cast<char*>(&nbytes), sizeof(unsigned int));
+  out.write(reinterpret_cast<char*>((void*) gains_->data().data()), nbytes);
+  out.close();
 }
 
 SiPixelGainCalibrationForHLTGPU::~SiPixelGainCalibrationForHLTGPU() { cudaCheck(cudaFreeHost(gainForHLTonHost_)); }

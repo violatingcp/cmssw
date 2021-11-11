@@ -75,17 +75,26 @@ PatatrackSonicProducer::PatatrackSonicProducer(const edm::ParameterSet &iConfig)
       trackSOA_(produces<PixelTrackHeterogeneous>()),
       debug_(iConfig.getUntrackedParameter<bool>("debugMode", false)) {
 	formatterErrors_ = new SiPixelFormatterErrors();
+	unsigned pId = 0; 
+	//fedIds_.reserve(nfeds);
+	for(unsigned int i0 = 0; i0 < 139; i0++) { 
+	  if(i0 != 10  && i0 != 11  && i0 != 22  && i0 != 23  && i0 != 34  && i0 != 35  && i0 != 46  && i0 != 47  && i0 != 58  && i0 != 59  &&
+	     i0 != 70  && i0 != 71  && i0 != 82  && i0 != 83  && i0 != 94  && i0 != 95  && i0 != 103 && i0 != 104 && i0 != 105 && i0 != 106 &&
+	     i0 != 107 && i0 != 115 && i0 != 116 && i0 != 117 && i0 != 118 && i0 != 119 && i0 != 127 && i0 != 128 && i0 != 129 && i0 != 130 && i0 != 131) {fedIds_.push_back(1200+i0); pId++;}
+	}
+
 }
 
 void PatatrackSonicProducer::acquire(edm::Event const &iEvent, edm::EventSetup const &iSetup, Input &iInput) {
   const reco::BeamSpot& bs = iEvent.get(bsGetToken_);
   const auto& buffers = iEvent.get(rawGetToken_);
   // initialize cabling map or update if necessary
-  if (recordWatcher_.check(iSetup)) {
+  // /f (recordWatcher_.check(iSetup)) {
     // cabling map, which maps online address (fed->link->ROC->local pixel) to offline (DetId->global pixel)
-    auto cablingMap = iSetup.getTransientHandle(cablingMapToken_);
-    fedIds_ = cablingMap->fedIds();
-  }
+    //auto cablingMap = iSetup.getTransientHandle(cablingMapToken_);
+    //fedIds_ = cablingMap->fedIds();
+    //}
+
   //Note Fed data quality  checks ae curently done on the CPU server, and could be moved here
   auto& input = iInput.at("input");
   auto  feds  = input.allocate<uint32_t>();
@@ -107,15 +116,15 @@ void PatatrackSonicProducer::acquire(edm::Event const &iEvent, edm::EventSetup c
   unsigned bsSize = 11;
   vin.resize(vin.size()+bsSize); pSize+=bsSize;
   std::memcpy(&vin[vin.size() - bsSize],&bsHost,bsSize*sizeof(float));
-
   //Now deal with FEDs
   vin.push_back(fedIds_.size()); pSize++;
-  ErrorChecker errorcheck;
-  bool errorsInEvent = false;
-  errors_.clear();
+  //ErrorChecker errorcheck;
+  //bool errorsInEvent = false;
+  //errors_.clear();
   for (unsigned int fedId : fedIds_) {
     vin.push_back(fedId); pSize++;
     const FEDRawData& rawData = buffers.FEDData(fedId);
+    /*
     int nWords = rawData.size() / sizeof(uint64_t);
     if (nWords == 0) {
       std::cout << " !!!! Continuing " << std::endl;
@@ -125,6 +134,7 @@ void PatatrackSonicProducer::acquire(edm::Event const &iEvent, edm::EventSetup c
     if (not errorcheck.checkCRC(errorsInEvent, fedId, trailer, errors_)) {
       continue;
     }
+    */
     unsigned int rawsize=rawData.size()/4;
     vin.push_back(rawsize); pSize++;
     vin.resize(vin.size()+rawsize);
@@ -147,11 +157,10 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   SiPixelErrorCompact  pixerrors_[20];
   
   auto hits   = std::make_unique<SiPixelRecHitsSoA>();
-  auto tracks = std::make_unique<pixelTrack::TrackSoA>();
 
   //PixelTrackHeterogeneous tracks;
   const auto &output1 = iOutput.begin()->second;
-  const auto &outputs_from_server = output1.fromServer<uint8_t>();
+  const auto &outputs_from_server = output1.fromServer<int8_t>();
   auto output = (outputs_from_server[0]);  
   unsigned int pCount = 0;
   uint32_t nHits      = 0; //output[pCount]; pCount++;
@@ -159,7 +168,8 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   static const unsigned nMax = 2000; 
   //if(nHits_ < 2000) nMax = nHits_;
   std::memcpy(hits_,&(output.front())+pCount,(nMax+1)*sizeof(uint32_t));    pCount += 4*(nMax+1);
-  std::memcpy(pos_,&(output.front())+pCount,4*nHits*sizeof(float));     pCount += 4*4*nHits;
+  std::memcpy(pos_, &(output.front())+pCount,4*nHits*sizeof(float));         pCount += 4*4*nHits;
+  iEvent.emplace(hitsSOA_,      nHits, hits_, pos_); 
 
   uint32_t nDigis    = 0; //output[pCount]; pCount++;
   std::memcpy(&nDigis,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
@@ -167,43 +177,127 @@ void PatatrackSonicProducer::produce(edm::Event &iEvent,
   std::memcpy(rawIdArr_,&(output.front())+pCount,nDigis*sizeof(uint32_t)); pCount += 4*nDigis;
   std::memcpy(adc_,     &(output.front())+pCount,nDigis*sizeof(uint16_t)); pCount += 2*nDigis;
   std::memcpy(clus_,    &(output.front())+pCount,nDigis*sizeof(int32_t));  pCount += 4*nDigis;
+  iEvent.emplace(digiPutToken_, nDigis, pdigi_, rawIdArr_, adc_, clus_);
   
+  /*
+  std::vector<uint32_t> pdigi;
+  std::vector<uint32_t> rawIdArr;
+  std::vector<uint16_t> adc;
+  std::vector<int32_t>  clus;
+  uint32_t pOldDigi = 0;
+  int32_t pOldClus = 0;
+  uint32_t pOldRawId = 0;
+  uint16_t pADC      = 0;
+  for(uint32_t i0 = 0; i0 < nDigis+1; i0++) { 
+    if(pOldRawId != rawIdArr_[i0] || pOldClus != clus_[i0] ) { // || pOldDigi != pdigi_[i0]) {   
+	if(i0 > 0) { 
+	  pdigi.push_back(pOldDigi); 
+	  rawIdArr.push_back(pOldRawId);
+	  adc.push_back (pADC);
+	  clus.push_back(pOldClus);
+	}
+	if (i0 < nDigis) { 
+	  if(i0 < 10) std::cout << i0 << " -digi- " << pdigi_[i0] << " -old- " << rawIdArr_[i0] << " -adc- " << adc_[i0] << " -clus- " << clus_[i0] << std::endl;
+	  pOldDigi  = pdigi_[i0];
+	  pOldRawId = rawIdArr_[i0];
+	  pADC      = adc_[i0];
+	  pOldClus  = clus_[i0];
+	}
+    } else { 
+      if(adc_[i0] +pADC < 65536) pADC += adc_[i0];
+    }
+  }
+  */
+  //iEvent.emplace(digiPutToken_, pdigi.size(), pdigi.data(), rawIdArr.data(), adc.data(), clus.data());
+
   uint32_t nErrors = 0; 
   std::memcpy(&nErrors,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
   std::memcpy(pixerrors_, &(output.front())+pCount,10*nErrors);     pCount += 10*nErrors;
-  //if(nErrors > 2) std::cout << " -errors- " << pixerrors_[0].rawId << " -- " << pixerrors_[0].word << " -- " << pixerrors_[0].errorType << " -- " << pixerrors_[0].fedId << std::endl;
-
-  unsigned int nTracks = 0;//output[pCount]; pCount++;
-  std::memcpy(&nTracks,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
-  std::memcpy((*tracks).chi2.data(),      &(output.front())+pCount,nTracks*sizeof(float));                 pCount+=4*nTracks;
-  std::memcpy((*tracks).qualityData(),    &(output.front())+pCount,nTracks*sizeof(uint8_t));               pCount+=1*nTracks;
-  std::memcpy((*tracks).eta.data(),       &(output.front())+pCount,nTracks*sizeof(float));                 pCount+=4*nTracks;
-  std::memcpy((*tracks).pt.data(),        &(output.front())+pCount,nTracks*sizeof(float));                 pCount+=4*nTracks;
-  std::memcpy((*tracks).stateAtBS.state(0).data(),     &(output.front())+pCount,nTracks*sizeof(float)*5);  pCount+=4*(nTracks*5);
-  std::memcpy((*tracks).stateAtBS.covariance(0).data(),&(output.front())+pCount,nTracks*sizeof(float)*15); pCount+=4*(nTracks*15);
-  std::memcpy((void*)(*tracks).hitIndices.content.data(),&(output.front())+pCount,nTracks*sizeof(uint32_t)*5); pCount+=4*(nTracks*5);
-  std::memcpy((*tracks).hitIndices.off.data(),           &(output.front())+pCount,(nTracks+1)*sizeof(int32_t));    pCount+=4*(nTracks+1);
-  std::memcpy((void*)(*tracks).detIndices.content.data(),&(output.front())+pCount,nTracks*sizeof(uint32_t)*5);     pCount+=4*(nTracks*5);
-  std::memcpy((*tracks).detIndices.off.data(),           &(output.front())+pCount,(nTracks+1)*sizeof(int32_t));    pCount+=4*(nTracks+1);
-  tracks->detIndices.psws = 0;
-  tracks->hitIndices.psws = 0;
-  
-  auto vertices = std::make_unique<ZVertexSoA>();
-  static constexpr uint32_t MAXTRACKS = 32 * 1024;
-  static constexpr uint32_t MAXVTX = 1024;
-  std::memcpy(&(vertices->nvFinal),&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
-  std::memcpy((vertices)->idv    , &(output.front())+pCount,MAXTRACKS*sizeof(int16_t));   pCount+=2*MAXTRACKS;
-  std::memcpy((vertices)->zv     , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
-  std::memcpy((vertices)->wv     , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
-  std::memcpy((vertices)->chi2   , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
-  std::memcpy((vertices)->ptv2   , &(output.front())+pCount,MAXVTX*sizeof(float));        pCount+=4*MAXVTX;
-  std::memcpy((vertices)->ndof   , &(output.front())+pCount,MAXTRACKS*sizeof(int32_t));   pCount+=4*MAXVTX;
-  std::memcpy((vertices)->sortInd, &(output.front())+pCount,MAXVTX*sizeof(uint16_t));     pCount+=2*MAXVTX;
-
-  iEvent.emplace(hitsSOA_,      nHits, hits_, pos_); 
-  iEvent.emplace(digiPutToken_, nDigis, pdigi_, rawIdArr_, adc_, clus_);
   iEvent.emplace(digiErrorPutToken_, nErrors, pixerrors_, formatterErrors_);
+
+  static constexpr uint32_t MAXTRACKS = 32 * 1024;
+  //auto pTmp = pixelTrack::Quality::bad; 
+
+  unsigned int nTracks = 0;
+  auto tracks = std::make_unique<pixelTrack::TrackSoA>();
+  std::memcpy(&nTracks,&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
+  tracks->ntFinal = nTracks;
+  //std::cout << "--> nTracks " << nTracks << std::endl;
+  std::memcpy((*tracks).chi2.data(),      &(output.front())+pCount,nTracks*sizeof(float));                 pCount+=4*nTracks;
+  //std::fill(tracks->chi2.data()+nTracks,tracks->chi2.data()+MAXTRACKS,0);
+  
+  std::memcpy((*tracks).qualityData(),    &(output.front())+pCount,nTracks*sizeof(uint8_t));               pCount+=1*nTracks;
+  //std::fill(tracks->qualityData()+nTracks,tracks->qualityData()+MAXTRACKS,pTmp);
+
+  std::memcpy((*tracks).eta.data(),       &(output.front())+pCount,nTracks*sizeof(float));                 pCount+=4*nTracks;
+  //std::fill(tracks->eta.data()+nTracks,tracks->eta.data()+MAXTRACKS,0);
+
+  std::memcpy((*tracks).pt.data(),        &(output.front())+pCount,nTracks*sizeof(float));                 pCount+=4*nTracks;
+  //std::fill(tracks->pt.data()+nTracks,tracks->pt.data()+MAXTRACKS,0);
+  for(unsigned i1 = 0; i1 < 5; i1++) { 
+    std::memcpy(tracks->stateAtBS.state(0).data()+MAXTRACKS*i1,     &(output.front())+pCount,nTracks*sizeof(float));  pCount+=4*(nTracks);
+  }
+  //    std::fill(tracks->stateAtBS.state(0).data()+nTracks*5,tracks->stateAtBS.state(0).data()+MAXTRACKS*5,0);
+  for(unsigned i1 = 0; i1 < 15; i1++) { 
+    std::memcpy(tracks->stateAtBS.covariance(0).data()+MAXTRACKS*i1,&(output.front())+pCount,nTracks*sizeof(float)); pCount+=4*(nTracks);
+  }
+
+  //std::memcpy(tracks->stateAtBS.covariance(0).data(),&(output.front())+pCount,nTracks*sizeof(float)*15); pCount+=4*(nTracks*15);
+  //std::fill(tracks->stateAtBS.covariance(0).data()+nTracks*15,tracks->stateAtBS.covariance(0).data()+MAXTRACKS*15,0);
+
+  std::memcpy((void*)(*tracks).hitIndices.content.data(),&(output.front())+pCount,nTracks*sizeof(uint32_t)*5);     pCount+=4*(nTracks*5);
+  //std::fill(tracks->hitIndices.content.data()     +nTracks*5,tracks->hitIndices.content.data()+5*MAXTRACKS,0);
+
+  std::memcpy((*tracks).hitIndices.off.data(),           &(output.front())+pCount,(nTracks+1)*sizeof(int32_t));    pCount+=4*(nTracks+1);
+  //int32_t hitEnd = tracks->hitIndices.off.data()[nTracks];
+  //std::fill(tracks->hitIndices.off.data()         +(nTracks+1),tracks->hitIndices.off.data()    +MAXTRACKS+1,   hitEnd);
+
+  std::memcpy((void*)(*tracks).detIndices.content.data(),&(output.front())+pCount,nTracks*sizeof(uint32_t)*5);     pCount+=4*(nTracks*5);
+  //std::fill(tracks->detIndices.content.data()     +nTracks*5,tracks->detIndices.content.data()+5*MAXTRACKS,0);
+
+  std::memcpy((*tracks).detIndices.off.data(),           &(output.front())+pCount,(nTracks+1)*sizeof(int32_t));    pCount+=4*(nTracks+1);
+  //int32_t detEnd = tracks->detIndices.off.data()[nTracks];
+  //std::fill(tracks->detIndices.off.data()         +(nTracks+1),tracks->detIndices.off.data()    +MAXTRACKS+1,   detEnd);
+  
+  /*
+  std::cout << " ---> PHI " << tracks->phi(0) << std::endl;
+  for(int i1 = 0; i1 < 5; i1++) { 
+    std::cout << i1;
+    for(int i0 = 0; i0 < 5; i0++) { 
+      std::cout << " COV VALS: " << i0 << " -- " <<  tracks->stateAtBS.state(i1).data()[i0*nTracks] << "/" << tracks->stateAtBS.state(i1).data()[i0*MAXTRACKS] << "/" << tracks->stateAtBS.state(i1)(i0);
+    }
+    std::cout << std::endl;
+  }
+  */
+  //for(int i0 = 0; i0 < 5; i0++) { 
+  //  std::cout << " COV: " << i0 << " -- " << tracks->stateAtBS.covariance(0).data()[i0] << " / ";
+  //}
+  //std::cout << std::endl;
+  /*
+  std::cout << std::endl;
+  for(int i0 = 1050; i0 < 1075; i0++) { 
+    for(int i1 = 0; i1 < 4; i1++) { 
+      std::cout << " i: " << i0 << " -- " << i1 << " -- " << (*(tracks->hitIndices.begin(i0)+i1)) << std::endl;
+    }
+  }
+  */
+
+  //std::fill(tracks->hitIndices.off.data()         +(nTracks),tracks->hitIndices.off.data()    +MAXTRACKS,  0);
+  //std::fill(tracks->detIndices.off.data()         +(nTracks),tracks->detIndices.off.data()    +MAXTRACKS,  0);
+  //tracks->detIndices.psws = 0;
+  //tracks->hitIndices.psws = 0;
   iEvent.emplace(trackSOA_,  PixelTrackHeterogeneous(std::move(tracks)));
+
+  auto vertices = std::make_unique<ZVertexSoA>();
+  std::memcpy(&(vertices->nvFinal),&(output.front())+pCount,sizeof(uint32_t)); pCount += 4;
+  unsigned int nVtx = vertices->nvFinal;
+  std::memcpy((vertices)->idv    , &(output.front())+pCount,nTracks*sizeof(int16_t));   pCount+=2*nTracks;
+  std::memcpy((vertices)->zv     , &(output.front())+pCount,nVtx*sizeof(float));        pCount+=4*nVtx;
+  std::memcpy((vertices)->wv     , &(output.front())+pCount,nVtx*sizeof(float));        pCount+=4*nVtx;
+  std::memcpy((vertices)->chi2   , &(output.front())+pCount,nVtx*sizeof(float));        pCount+=4*nVtx;
+  std::memcpy((vertices)->ptv2   , &(output.front())+pCount,nVtx*sizeof(float));        pCount+=4*nVtx;
+  std::memcpy((vertices)->ndof   , &(output.front())+pCount,nVtx*sizeof(int32_t));      pCount+=4*nVtx;
+  std::memcpy((vertices)->sortInd, &(output.front())+pCount,nVtx*sizeof(uint16_t));     pCount+=2*nVtx;
   iEvent.emplace(vertexSOA_, ZVertexHeterogeneous(std::move(vertices)));
 }
 

@@ -49,9 +49,8 @@ process.TritonService.fallback.useGPU  = False
 process.TritonService.servers.append(
     cms.PSet(
         name = cms.untracked.string("default"),
-        address = cms.untracked.string("34.133.17.37"),
-        #address = cms.untracked.string("104.197.15.13"),
-        port = cms.untracked.uint32(8031),
+        address = cms.untracked.string("localhost"),
+        port = cms.untracked.uint32(8021),
     )
 )
 
@@ -120,7 +119,7 @@ process.hltPixelTracks = _pixelTrackProducerFromSoA.clone(
     pixelRecHitLegacySrc = "hltSiPixelRecHits",
     trackSrc = "hltPTTSONIC",
     #minNumberOfHits = cms.int32(0),
-    minQuality = cms.string('dup'),
+    #minQuality = cms.string('dup'),
 )
 
 from RecoPixelVertexing.PixelVertexFinding.pixelVertexFromSoA_cfi import pixelVertexFromSoA as _pixelVertexFromSoA
@@ -131,11 +130,11 @@ process.hltPixelVertices = _pixelVertexFromSoA.clone(
 )
 
 process.p = cms.Path(
-    process.hltPTTSONIC#*
-    #process.hltSiPixelClusters*
-    #process.hltSiPixelRecHits*
-    #process.hltPixelTracks*
-    #process.hltPixelVertices
+    process.hltPTTSONIC
+    *process.hltSiPixelClusters
+    *process.hltSiPixelRecHits
+#    *process.hltPixelTracks
+#    *process.hltPixelVertices
 )
 
 #process.p = cms.Path(process.test)

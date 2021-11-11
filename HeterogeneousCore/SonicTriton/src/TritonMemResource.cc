@@ -39,10 +39,12 @@ const uint8_t* TritonOutputHeapResource::copyOutput() {
   const uint8_t* values;
   triton_utils::throwIfError(data_->result_->RawData(data_->name_, &values, &contentByteSize),
                              data_->name_ + " fromServer(): unable to get raw");
+  /*
   if (contentByteSize != data_->totalByteSize_) {
     throw cms::Exception("TritonDataError") << data_->name_ << " fromServer(): unexpected content byte size "
                                             << contentByteSize << " (expected " << data_->totalByteSize_ << ")";
   }
+  */
   return values;
 }
 
