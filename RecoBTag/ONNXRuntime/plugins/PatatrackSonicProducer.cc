@@ -75,13 +75,13 @@ PatatrackSonicProducer::PatatrackSonicProducer(const edm::ParameterSet &iConfig)
       trackSOA_(produces<PixelTrackHeterogeneous>()),
       debug_(iConfig.getUntrackedParameter<bool>("debugMode", false)) {
 	formatterErrors_ = new SiPixelFormatterErrors();
-	unsigned pId = 0; 
+	//unsigned pId = 0; 
 	//fedIds_.reserve(nfeds);
-	for(unsigned int i0 = 0; i0 < 139; i0++) { 
-	  if(i0 != 10  && i0 != 11  && i0 != 22  && i0 != 23  && i0 != 34  && i0 != 35  && i0 != 46  && i0 != 47  && i0 != 58  && i0 != 59  &&
-	     i0 != 70  && i0 != 71  && i0 != 82  && i0 != 83  && i0 != 94  && i0 != 95  && i0 != 103 && i0 != 104 && i0 != 105 && i0 != 106 &&
-	     i0 != 107 && i0 != 115 && i0 != 116 && i0 != 117 && i0 != 118 && i0 != 119 && i0 != 127 && i0 != 128 && i0 != 129 && i0 != 130 && i0 != 131) {fedIds_.push_back(1200+i0); pId++;}
-	}
+	//for(unsigned int i0 = 0; i0 < 139; i0++) { 
+	//  if(i0 != 10  && i0 != 11  && i0 != 22  && i0 != 23  && i0 != 34  && i0 != 35  && i0 != 46  && i0 != 47  && i0 != 58  && i0 != 59  &&
+	//     i0 != 70  && i0 != 71  && i0 != 82  && i0 != 83  && i0 != 94  && i0 != 95  && i0 != 103 && i0 != 104 && i0 != 105 && i0 != 106 &&
+	//     i0 != 107 && i0 != 115 && i0 != 116 && i0 != 117 && i0 != 118 && i0 != 119 && i0 != 127 && i0 != 128 && i0 != 129 && i0 != 130 && i0 != 131) {fedIds_.push_back(1200+i0); pId++;}
+	//}
 
 }
 
@@ -89,12 +89,11 @@ void PatatrackSonicProducer::acquire(edm::Event const &iEvent, edm::EventSetup c
   const reco::BeamSpot& bs = iEvent.get(bsGetToken_);
   const auto& buffers = iEvent.get(rawGetToken_);
   // initialize cabling map or update if necessary
-  // /f (recordWatcher_.check(iSetup)) {
-    // cabling map, which maps online address (fed->link->ROC->local pixel) to offline (DetId->global pixel)
-    //auto cablingMap = iSetup.getTransientHandle(cablingMapToken_);
-    //fedIds_ = cablingMap->fedIds();
-    //}
-
+  if (recordWatcher_.check(iSetup)) {
+    //cabling map, which maps online address (fed->link->ROC->local pixel) to offline (DetId->global pixel)
+    auto cablingMap = iSetup.getTransientHandle(cablingMapToken_);
+    fedIds_ = cablingMap->fedIds();
+  }
   //Note Fed data quality  checks ae curently done on the CPU server, and could be moved here
   auto& input = iInput.at("input");
   auto  feds  = input.allocate<uint32_t>();
