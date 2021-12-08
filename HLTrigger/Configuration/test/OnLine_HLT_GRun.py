@@ -94032,11 +94032,11 @@ if 'GlobalTag' in process.__dict__:
     from Configuration.AlCa.GlobalTag import GlobalTag as customiseGlobalTag
     process.GlobalTag = customiseGlobalTag(process.GlobalTag, globaltag = 'auto:run3_hlt_GRun')
 
-if 'MessageLogger' in process.__dict__:
+if 1: #'MessageLogger' in process.__dict__:
     #process.MessageLogger.TriggerSummaryProducerAOD = cms.untracked.PSet()
     #process.MessageLogger.L1GtTrigReport = cms.untracked.PSet()
     #process.MessageLogger.L1TGlobalSummary = cms.untracked.PSet()
-    process.MessageLogger.HLTrigReport = cms.untracked.PSet()
+    #process.MessageLogger.HLTrigReport = cms.untracked.PSet()
     process.MessageLogger.FastReport = cms.untracked.PSet()
     #process.MessageLogger.ThroughputService = cms.untracked.PSet()
 

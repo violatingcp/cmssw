@@ -606,12 +606,12 @@ void HBHEPhase1Reconstructor::processData(const Collection& coll,
       if (rh.id().rawId()) {
         setAsicSpecificBits(frame, coder, *channelInfo, *properties.calib, soi, &rh);
         setCommonStatusBits(*channelInfo, *properties.calib, &rh);
-	std::cout << "HcalRecHit" << std::endl;
+	/*std::cout << "HcalRecHit" << std::endl;
 	std::cout << "Raw: " << channelInfo->tsRawCharge(0) << "/" << channelInfo->tsRawCharge(1) << "/" << channelInfo->tsRawCharge(2) << "/" << channelInfo->tsRawCharge(3) << "/" << channelInfo->tsRawCharge(4) << "/" << channelInfo->tsRawCharge(5) << "/" << channelInfo->tsRawCharge(6) << "/" << channelInfo->tsRawCharge(7) <<  std::endl;
         std::cout << "Gain: " <<channelInfo->tsGain(0) << std::endl;
         std::cout << "ieta/iphi: " << rh.id().ietaAbs() << "/" << rh.id().iphi() << "\n" <<
           "\tenergy: " << rh.energy() << std::endl;
-	std::cout << "depth: " << rh.id().depth() << std::endl;
+	std::cout << "depth: " << rh.id().depth() << std::endl;*/
         rechits->push_back(rh);
 
       }
@@ -762,8 +762,9 @@ void HBHEPhase1Reconstructor::produce(edm::Event& e, const edm::EventSetup& even
     else
       e.put(tok_info_, std::move(infos));
   }
-  if (makeRecHits_)
+  if (makeRecHits_){
     e.put(tok_rechit_, std::move(out));
+  std::cout <<"Running Mahi." << std::endl;}
 }
 
 // ------------ method called when starting to processes a run  ------------
@@ -811,7 +812,7 @@ void HBHEPhase1Reconstructor::fillDescriptions(edm::ConfigurationDescriptions& d
   desc.add<bool>("processQIE8");
   desc.add<bool>("processQIE11");
   desc.add<bool>("saveInfos");
-  desc.add<bool>("saveInfosVector", true);
+  desc.add<bool>("saveInfosVector",false);
   desc.add<bool>("saveDroppedInfos");
   desc.add<bool>("makeRecHits");
   desc.add<bool>("dropZSmarkedPassed");

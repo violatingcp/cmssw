@@ -49,8 +49,8 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
     client_->setBatchSize(hChannelInfo.size());
 
     auto tdata = input.allocate<float>(true);
-    auto tdata_depth = input_depth.allocate<float>(true);
-    auto tdata_ieta = input_ieta.allocate<float>(true);
+    auto tdata_depth = input_depth.allocate<int>(true);
+    auto tdata_ieta = input_ieta.allocate<int>(true);
 
     hcalIds_.clear();
     hcalIds_.reserve(hChannelInfo.size());
@@ -67,7 +67,7 @@ void FacileHcalReconstructor::acquire(edm::Event const& iEvent, edm::EventSetup 
       //idata["iphi"].push_back(pDetId.iphi());
       //idata["gain"].push_back(pChannel.tsGain(0.));
       for (unsigned int itTS = 0; itTS < pChannel.nSamples(); ++itTS) {
-        idata.push_back(pChannel.tsRawCharge(itTS));
+        idata.push_back(pChannel.tsRawCharge(itTS) - pChannel.tsPedestal(itTS));
       }
       idata.push_back(pChannel.tsGain(0.));
       idata.push_back(pDetId.iphi());
@@ -101,7 +101,7 @@ void FacileHcalReconstructor::produce(edm::Event& iEvent, edm::EventSetup const&
     std::unique_ptr<HBHERecHitCollection> out;
     out = std::make_unique<HBHERecHitCollection>();
     out->reserve(hcalIds_.size());
-
+    //std::cout <<"doing facile" << std::endl;
     const auto& output1 = iOutput.at("output"); //begin()->second;
     const auto& outputs = output1.fromServer<float>();
     for (std::size_t iB = 0; iB < hcalIds_.size(); iB++) {
@@ -109,8 +109,9 @@ void FacileHcalReconstructor::produce(edm::Event& iEvent, edm::EventSetup const&
       if (rhE < 0.f or std::isnan(rhE) or std::isinf(rhE))
         rhE = 0;
       HBHERecHit rh(hcalIds_[iB], rhE, 0.f, 0.f);
-      std::cout << "Hcal ieta/iphi" << rh.id().ietaAbs() << "/" << rh.id().iphi() << "\n" <<
-          "\tenergy:" << rhE << std::endl;
+      //std::cout << "Hcal ieta/iphi" << rh.id().ietaAbs() << "/" << rh.id().iphi() << "\n" <<
+      //    "\tenergy:" << rhE << std::endl;
+      std::cout << "Running FACILE." << std::endl;
       out->push_back(rh);
     }
     iEvent.put(std::move(out));
