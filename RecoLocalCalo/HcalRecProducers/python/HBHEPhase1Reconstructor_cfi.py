@@ -38,6 +38,7 @@ hbheprereco = cms.EDProducer(
 
     # Flag indicating whether we should produce HBHEChannelInfoCollection
     saveInfos = cms.bool(False),
+    saveInfosVector = cms.bool(False),
 
     # Flag indicating whether we should include HBHEChannelInfo objects
     # into HBHEChannelInfoCollection despite the fact that the channels

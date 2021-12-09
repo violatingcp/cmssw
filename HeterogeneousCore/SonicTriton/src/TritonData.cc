@@ -260,8 +260,10 @@ template class TritonData<tc::InferRequestedOutput>;
 
 template TritonInputContainer<float> TritonInputData::allocate(bool reserve);
 template TritonInputContainer<int64_t> TritonInputData::allocate(bool reserve);
+template TritonInputContainer<int> TritonInputData::allocate(bool reserve);
 
 template void TritonInputData::toServer(TritonInputContainer<float> data_in);
 template void TritonInputData::toServer(TritonInputContainer<int64_t> data_in);
+template void TritonInputData::toServer(TritonInputContainer<int> data_in);
 
 template TritonOutput<float> TritonOutputData::fromServer() const;

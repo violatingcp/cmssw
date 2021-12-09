@@ -224,7 +224,7 @@ start_singularity(){
 		REDIR=/dev/stdout
 	fi
 	$DRYRUN singularity run instance://${SERVER} \
-		tritonserver $PORTARGS $REPOARGS $VERBOSE >& ${REDIR} &
+		tritonserver --backend-config=tensorflow,version=2 $PORTARGS $REPOARGS $VERBOSE >& ${REDIR} &
 	[ -z "$DRYRUN" ] || wait
 }
 
