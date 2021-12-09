@@ -111,7 +111,7 @@ void FacileHcalReconstructor::produce(edm::Event& iEvent, edm::EventSetup const&
       HBHERecHit rh(hcalIds_[iB], rhE, 0.f, 0.f);
       //std::cout << "Hcal ieta/iphi" << rh.id().ietaAbs() << "/" << rh.id().iphi() << "\n" <<
       //    "\tenergy:" << rhE << std::endl;
-      std::cout << "Running FACILE." << std::endl;
+      //std::cout << "Running FACILE." << std::endl;
       out->push_back(rh);
     }
     iEvent.put(std::move(out));
