@@ -23,7 +23,7 @@ template <int32_t S>
 class TrackSoAHeterogeneousT {
 public:
   static constexpr int32_t stride() { return S; }
-
+  uint32_t ntFinal; 
   using Quality = pixelTrack::Quality;
   using hindex_type = uint32_t;
   using HitContainer = cms::cuda::OneToManyAssoc<hindex_type, S + 1, 5 * S>;

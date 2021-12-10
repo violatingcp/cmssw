@@ -65,7 +65,7 @@ private:
   int32_t const minNumberOfHits_;
   pixelTrack::Quality const minQuality_;
 };
-
+// auto maxTracks = tsoa.ntFinal;
 PixelTrackProducerFromSoA::PixelTrackProducerFromSoA(const edm::ParameterSet &iConfig)
     : tBeamSpot_(consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("beamSpot"))),
       tokenTrack_(consumes<PixelTrackHeterogeneous>(iConfig.getParameter<edm::InputTag>("trackSrc"))),
@@ -155,13 +155,12 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
   auto const *quality = tsoa.qualityData();
   auto const &fit = tsoa.stateAtBS;
   auto const &hitIndices = tsoa.hitIndices;
-  auto maxTracks = tsoa.stride();
-
+  auto maxTracks = tsoa.ntFinal;
   tracks.reserve(maxTracks);
 
   int32_t nt = 0;
 
-  for (int32_t it = 0; it < maxTracks; ++it) {
+  for (uint32_t it = 0; it < maxTracks; ++it) {
     auto nHits = tsoa.nHits(it);
     if (nHits == 0)
       break;  // this is a guard: maybe we need to move to nTracks...
