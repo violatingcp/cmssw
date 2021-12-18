@@ -84,7 +84,7 @@ void TritonData<IO>::setShape(unsigned loc, int64_t val) {
   //check boundary
   if (locFull >= fullShape_.size())
     throw cms::Exception("TritonDataError")
-        << name_ << " setShape(): dimension " << locFull << " out of bounds (" << fullShape_.size() << ")";
+      << name_ << " setShape(): dimension " << locFull << " out of bounds (" << fullShape_.size() << " -- variable dims " << variableDims_ << " -- " << noBatch_ << " -- " << loc << ")";
 
   if (val != fullShape_[locFull]) {
     if (dims_[locFull] == -1)
@@ -260,8 +260,19 @@ template class TritonData<tc::InferRequestedOutput>;
 
 template TritonInputContainer<float> TritonInputData::allocate(bool reserve);
 template TritonInputContainer<int64_t> TritonInputData::allocate(bool reserve);
+template TritonInputContainer<uint32_t> TritonInputData::allocate(bool reserve);
+template TritonInputContainer<uint8_t> TritonInputData::allocate(bool reserve);
+template TritonInputContainer<int8_t> TritonInputData::allocate(bool reserve);
+template TritonInputContainer<int> TritonInputData::allocate(bool reserve);
 
 template void TritonInputData::toServer(TritonInputContainer<float> data_in);
 template void TritonInputData::toServer(TritonInputContainer<int64_t> data_in);
+template void TritonInputData::toServer(TritonInputContainer<uint32_t> data_in);
+template void TritonInputData::toServer(TritonInputContainer<uint8_t> data_in);
+template void TritonInputData::toServer(TritonInputContainer<int8_t> data_in);
+template void TritonInputData::toServer(TritonInputContainer<int> data_in);
 
 template TritonOutput<float> TritonOutputData::fromServer() const;
+template TritonOutput<uint32_t> TritonOutputData::fromServer() const;
+template TritonOutput<uint8_t> TritonOutputData::fromServer() const;
+template TritonOutput<int8_t> TritonOutputData::fromServer() const;

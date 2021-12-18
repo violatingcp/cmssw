@@ -831,19 +831,10 @@ def enablePatatrackPixelTriplets(process):
 
 
 # customisation for running the Patatrack reconstruction, with automatic offload via CUDA when a supported gpu is available
-def customizeHLTforPatatrackAAS(process):
+def customizeHLTforPatatrack(process):
     process = customiseCommon(process)
     process = customisePixelLocalReconstructionAAS(process)
     process = customisePixelTrackReconstructionAAS(process)
-    process = customiseEcalLocalReconstruction(process)
-    process = customiseHcalLocalReconstruction(process)
-    return process
-
-
-def customizeHLTforPatatrack(process):
-    process = customiseCommon(process)
-    process = customisePixelLocalReconstruction(process)
-    process = customisePixelTrackReconstruction(process)
     process = customiseEcalLocalReconstruction(process)
     process = customiseHcalLocalReconstruction(process)
     return process
