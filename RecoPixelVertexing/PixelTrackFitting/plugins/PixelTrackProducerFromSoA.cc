@@ -160,7 +160,7 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
 
   int32_t nt = 0;
 
-  for (int32_t it = 0; it < maxTracks; ++it) {
+  for (uint32_t it = 0; it < maxTracks; ++it) {
     auto nHits = tsoa.nHits(it);
     if (nHits == 0)
       break;  // this is a guard: maybe we need to move to nTracks...
