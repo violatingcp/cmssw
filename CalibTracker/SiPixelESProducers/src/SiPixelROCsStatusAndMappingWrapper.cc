@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 // CUDA includes
 #include <cuda_runtime.h>
@@ -25,7 +26,7 @@ SiPixelROCsStatusAndMappingWrapper::SiPixelROCsStatusAndMappingWrapper(SiPixelFe
                                                                        SiPixelQuality const* badPixelInfo)
     : cablingMap_(&cablingMap), modToUnpDefault(pixelgpudetails::MAX_SIZE), hasQuality_(badPixelInfo != nullptr) {
   cudaCheck(cudaMallocHost(&cablingMapHost, sizeof(SiPixelROCsStatusAndMapping)));
-
+  
   std::vector<unsigned int> const& fedIds = cablingMap.fedIds();
   std::unique_ptr<SiPixelFedCablingTree> const& cabling = cablingMap.cablingTree();
 
@@ -99,6 +100,13 @@ SiPixelROCsStatusAndMappingWrapper::SiPixelROCsStatusAndMappingWrapper(SiPixelFe
   }
 
   cablingMapHost->size = index - 1;
+
+  std::ofstream out("cablingMap.bin", std::ios::binary);
+  out.write(reinterpret_cast<char*>((void*)this->cablingMapHost), sizeof(SiPixelROCsStatusAndMapping));
+  unsigned int modToUnpDefSize=this->modToUnpDefault.size();
+  out.write(reinterpret_cast<char*>(&modToUnpDefSize), sizeof(unsigned int));
+  out.write(reinterpret_cast<char*>((void*)this->modToUnpDefault.data()), modToUnpDefSize*sizeof(unsigned char));
+  out.close();
 }
 
 SiPixelROCsStatusAndMappingWrapper::~SiPixelROCsStatusAndMappingWrapper() { cudaCheck(cudaFreeHost(cablingMapHost)); }
@@ -113,6 +121,7 @@ const SiPixelROCsStatusAndMapping* SiPixelROCsStatusAndMappingWrapper::getGPUPro
     cudaCheck(cudaMemcpyAsync(
         data.cablingMapDevice, this->cablingMapHost, sizeof(SiPixelROCsStatusAndMapping), cudaMemcpyDefault, stream));
   });
+
   return data.cablingMapDevice;
 }
 
@@ -163,6 +172,7 @@ cms::cuda::device::unique_ptr<unsigned char[]> SiPixelROCsStatusAndMappingWrappe
                             pixelgpudetails::MAX_SIZE * sizeof(unsigned char),
                             cudaMemcpyHostToDevice,
                             cudaStream));
+
   return modToUnpDevice;
 }
 
