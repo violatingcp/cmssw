@@ -63,6 +63,7 @@ private:
   const edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> ttTopoToken_;
 
   int32_t const minNumberOfHits_;
+  bool suppressTracks_;
   pixelTrack::Quality const minQuality_;
 };
 // auto maxTracks = tsoa.ntFinal;
@@ -74,6 +75,7 @@ PixelTrackProducerFromSoA::PixelTrackProducerFromSoA(const edm::ParameterSet &iC
       idealMagneticFieldToken_(esConsumes()),
       ttTopoToken_(esConsumes()),
       minNumberOfHits_(iConfig.getParameter<int>("minNumberOfHits")),
+      suppressTracks_(iConfig.getParameter<bool>("suppressTracks")),
       minQuality_(pixelTrack::qualityByName(iConfig.getParameter<std::string>("minQuality"))) {
   if (minQuality_ == pixelTrack::Quality::notQuality) {
     throw cms::Exception("PixelTrackConfiguration")
@@ -95,6 +97,7 @@ void PixelTrackProducerFromSoA::fillDescriptions(edm::ConfigurationDescriptions 
   desc.add<edm::InputTag>("trackSrc", edm::InputTag("pixelTracksSoA"));
   desc.add<edm::InputTag>("pixelRecHitLegacySrc", edm::InputTag("siPixelRecHitsPreSplittingLegacy"));
   desc.add<int>("minNumberOfHits", 0);
+  desc.add<bool>("suppressTracks", false);
   desc.add<std::string>("minQuality", "loose");
   descriptions.addWithDefaultLabel(desc);
 }
@@ -155,12 +158,13 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
   auto const *quality = tsoa.qualityData();
   auto const &fit = tsoa.stateAtBS;
   auto const &hitIndices = tsoa.hitIndices;
-  auto maxTracks = tsoa.ntFinal;
+  auto maxTracks = tsoa.stride();//ntFinal;
+  if(suppressTracks_) maxTracks = int32_t(tsoa.ntFinal);
   tracks.reserve(maxTracks);
 
   int32_t nt = 0;
 
-  for (uint32_t it = 0; it < maxTracks; ++it) {
+  for (int32_t it = 0; it < maxTracks; ++it) {
     auto nHits = tsoa.nHits(it);
     if (nHits == 0)
       break;  // this is a guard: maybe we need to move to nTracks...

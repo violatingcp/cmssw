@@ -481,7 +481,8 @@ def customisePixelTrackReconstructionAAS(process):
     process.hltPixelTracks = _pixelTrackProducerFromSoA.clone(
         beamSpot = "hltOnlineBeamSpot",
         pixelRecHitLegacySrc = "hltSiPixelRecHits",
-        trackSrc = "hltPTTSONIC"
+        trackSrc = "hltPTTSONIC",
+        suppressTracks = True
     )
 
 
@@ -812,6 +813,82 @@ def customiseHcalLocalReconstruction(process):
     # done
     return process
 
+# customisation for offloading the HCAL local reconstruction via CUDA if a supported gpu is present
+def customiseHcalLocalReconstructionAAS(process):
+
+    hasHLTDoLocalHcalSeq = 'HLTDoLocalHcalSequence' in process.__dict__
+    if not (hasHLTDoLocalHcalSeq or 'HLTStoppedHSCPLocalHcalReco' in process.__dict__):
+        return process
+
+    if hasHLTDoLocalHcalSeq:
+        process.HLTDoLocalHcalSequence = cms.Sequence()
+    process.HLTStoppedHSCPLocalHcalReco = cms.Sequence()
+
+    process.hltHbherecopre = process.hltHbhereco.clone(
+        makeRecHits = cms.bool(False),
+        saveInfos = cms.bool(True),
+        saveInfosVector = cms.bool(True),
+    )
+    print("Check ME:",process.hltHbherecopre)
+    # cpu only: convert the pixel rechits from legacy to SoA format                                                                                                                                                                     
+    process.load("HeterogeneousCore.SonicTriton.TritonService_cff")
+    process.TritonService.verbose = False
+    process.TritonService.fallback.enable  = False
+    process.TritonService.fallback.verbose = False
+    process.TritonService.fallback.useGPU  = False
+    process.TritonService.servers.append(
+        cms.PSet(
+            name = cms.untracked.string("default"),
+            address = cms.untracked.string("ailab01.fnal.gov"),
+            port = cms.untracked.uint32(8001),
+            useSsl = cms.untracked.bool(False),
+            rootCertificates = cms.untracked.string(""),
+            privateKey = cms.untracked.string(""),
+            certificateChain = cms.untracked.string(""),
+        )
+    )
+    # Modules and EDAliases
+    from RecoLocalCalo.HcalRecProducers.facileHcalReconstructor_cfi import sonic_hbheprereco
+    #process.hltHbherecoSONIC = sonic_hbheprereco.clone(
+    #    ChannelInfoName = cms.InputTag("hltHbherecopre")
+    #)
+    # SwitchProducer between the legacy producer and the copy from gpu with conversion
+    process.hltHbhereco = SwitchProducerCUDA(
+        # legacy producer
+        cpu = process.hltHbhereco.clone(),
+        # alias to the rechits converted to legacy format
+        cuda = sonic_hbheprereco.clone(
+            ChannelInfoName = cms.InputTag("hltHbherecopre")
+        )
+    )
+
+    # Tasks and Sequences
+    if hasHLTDoLocalHcalSeq:
+        process.HLTDoLocalHcalTask = cms.Task(
+            process.hltHcalDigis,                           # legacy producer, unpack HCAL digis on cpu
+            process.hltHbherecopre,
+            process.hltHbhereco,                            # SwitchProducer between the legacy producer and the copy from gpu with conversion
+            process.hltHfprereco,                           # legacy producer
+            process.hltHfreco,                              # legacy producer
+            process.hltHoreco)                              # legacy producer
+
+        process.HLTDoLocalHcalSequence = cms.Sequence(
+            process.HLTDoLocalHcalTask)
+        print("!!! Local Seq",process.HLTDoLocalHcalSequence)
+    process.HLTStoppedHSCPLocalHcalRecoTask = cms.Task(
+        process.hltHcalDigis,                               # legacy producer, unpack HCAL digis on cpu
+        process.hltHbherecopre,
+        process.hltHbhereco)                                # SwitchProducer between the legacy producer and the copy from gpu with conversion
+
+    process.HLTStoppedHSCPLocalHcalReco = cms.Sequence(
+        process.HLTStoppedHSCPLocalHcalRecoTask)
+
+
+    # done
+    return process
+
+
+
 
 # customisation to enable pixel triplets instead of quadruplets
 def enablePatatrackPixelTriplets(process):
@@ -832,11 +909,12 @@ def enablePatatrackPixelTriplets(process):
 
 # customisation for running the Patatrack reconstruction, with automatic offload via CUDA when a supported gpu is available
 def customizeHLTforPatatrackAAS(process):
+    #forceGpuOffload()
     process = customiseCommon(process)
     process = customisePixelLocalReconstructionAAS(process)
     process = customisePixelTrackReconstructionAAS(process)
-    process = customiseEcalLocalReconstruction(process)
-    process = customiseHcalLocalReconstruction(process)
+    #process = customiseEcalLocalReconstruction(process)
+    process = customiseHcalLocalReconstructionAAS(process)
     return process
 
 

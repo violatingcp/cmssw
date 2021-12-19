@@ -9,8 +9,9 @@ process.maxEvents.input = cms.untracked.int32(1000)
 from Configuration.AlCa.GlobalTag import GlobalTag as customiseGlobalTag
 process.GlobalTag = customiseGlobalTag(process.GlobalTag, globaltag = '120X_mcRun3_2021_realistic_v2')
 process.hltHbherecopre = process.hltHbhereco.clone(
-    makeRecHits = cms.bool(False),
+    makeRecHits = cms.bool(True),
     saveInfos = cms.bool(True),
+    #saveDroppedInfos = cms.bool(True)
     saveInfosVector = cms.bool(True),
 )
 process.load("HeterogeneousCore.SonicTriton.TritonService_cff")
@@ -66,7 +67,7 @@ process.out = cms.OutputModule("PoolOutputModule",
 
 process.HLTDoLocalHcalSequence = cms.Sequence( process.hltHcalDigis + process.hltHbherecopre + process.hltHbhereco + process.hltHfprereco + process.hltHfreco + process.hltHoreco )
 process.HLTStoppedHSCPLocalHcalReco = cms.Sequence( process.hltHcalDigis + process.hltHbherecopre + process.hltHbhereco)
-
+print("test",process.HLTDoLocalHcalSequence)
 #process.HLTSchedule.append(process.finalize)
 
 
