@@ -41,6 +41,7 @@
 <use name="RecoMuon/TrackingTools"/>
 <use name="L1Trigger/CSCTrackFinder"/>
 <use name="L1Trigger/GlobalTriggerAnalyzer"/>
+<use name="L1Trigger/Phase2L1GMT"/>
 <use name="JetMETCorrections/Objects"/>
 <use name="JetMETCorrections/Algorithms"/>
 <use name="PhysicsTools/Utilities"/>
