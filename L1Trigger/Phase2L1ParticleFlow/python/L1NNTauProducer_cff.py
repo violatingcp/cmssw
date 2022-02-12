@@ -37,8 +37,10 @@ L1NNTauProducerPF = cms.EDProducer("L1NNTauProducer",
 
 l1ctLayer1Barrel2Vtx = l1ctLayer1Barrel.clone()
 l1ctLayer1Barrel2Vtx.nVtx = 2
+l1ctLayer1Barrel2Vtx.puAlgoParameters.nVtx = 2
 l1ctLayer1HGCal2Vtx  = l1ctLayer1HGCal.clone()
 l1ctLayer1HGCal2Vtx.nVtx = 2
+l1ctLayer1HGCal2Vtx.puAlgoParameters.nVtx = 2
 l1ctLayer12Vtx       = l1ctLayer1.clone()
 l1ctLayer12Vtx.pfProducers = cms.VInputTag(
     cms.InputTag("l1ctLayer1Barrel2Vtx"),
