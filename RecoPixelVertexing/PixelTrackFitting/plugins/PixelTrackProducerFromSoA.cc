@@ -7,6 +7,7 @@
 #include "DataFormats/TrajectoryState/interface/LocalTrajectoryParameters.h"
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "DataFormats/TrackerRecHit2D/interface/SiPixelRecHitCollection.h"
+#include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -62,9 +63,10 @@ private:
   const edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> ttTopoToken_;
 
   int32_t const minNumberOfHits_;
+  bool suppressTracks_;
   pixelTrack::Quality const minQuality_;
 };
-
+// auto maxTracks = tsoa.ntFinal;
 PixelTrackProducerFromSoA::PixelTrackProducerFromSoA(const edm::ParameterSet &iConfig)
     : tBeamSpot_(consumes<reco::BeamSpot>(iConfig.getParameter<edm::InputTag>("beamSpot"))),
       tokenTrack_(consumes<PixelTrackHeterogeneous>(iConfig.getParameter<edm::InputTag>("trackSrc"))),
@@ -73,6 +75,7 @@ PixelTrackProducerFromSoA::PixelTrackProducerFromSoA(const edm::ParameterSet &iC
       idealMagneticFieldToken_(esConsumes()),
       ttTopoToken_(esConsumes()),
       minNumberOfHits_(iConfig.getParameter<int>("minNumberOfHits")),
+      suppressTracks_(iConfig.getParameter<bool>("suppressTracks")),
       minQuality_(pixelTrack::qualityByName(iConfig.getParameter<std::string>("minQuality"))) {
   if (minQuality_ == pixelTrack::Quality::notQuality) {
     throw cms::Exception("PixelTrackConfiguration")
@@ -94,6 +97,7 @@ void PixelTrackProducerFromSoA::fillDescriptions(edm::ConfigurationDescriptions 
   desc.add<edm::InputTag>("trackSrc", edm::InputTag("pixelTracksSoA"));
   desc.add<edm::InputTag>("pixelRecHitLegacySrc", edm::InputTag("siPixelRecHitsPreSplittingLegacy"));
   desc.add<int>("minNumberOfHits", 0);
+  desc.add<bool>("suppressTracks", false);
   desc.add<std::string>("minQuality", "loose");
   descriptions.addWithDefaultLabel(desc);
 }
@@ -155,7 +159,7 @@ void PixelTrackProducerFromSoA::produce(edm::StreamID streamID,
   auto const &fit = tsoa.stateAtBS;
   auto const &hitIndices = tsoa.hitIndices;
   auto maxTracks = tsoa.stride();
-
+  if(suppressTracks_) maxTracks = int32_t(tsoa.ntFinal);
   tracks.reserve(maxTracks);
 
   int32_t nt = 0;
