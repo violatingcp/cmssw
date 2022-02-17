@@ -13,24 +13,23 @@ namespace tc = triton::client;
 
 template <typename IO>
 TritonMemResource<IO>::TritonMemResource(TritonData<IO>* data, const std::string& name, size_t size)
-    : data_(data), name_(name), size_(size), addr_(nullptr), closed_(false) {}
+    : data_(data), name_(name), size_(size), addr_(nullptr), closed_(false), errMsgSet_("unable to set shared memory (" + name_ + ")") {}
 
 template <typename IO>
 void TritonMemResource<IO>::set() {
   triton_utils::throwIfError(data_->data_->SetSharedMemory(name_, data_->totalByteSize_, 0),
-                             "unable to set shared memory (" + name_ + ")");
+                             errMsgSet_);
 }
 
 template <typename IO>
 TritonHeapResource<IO>::TritonHeapResource(TritonData<IO>* data, const std::string& name, size_t size)
-    : TritonMemResource<IO>(data, name, size) {}
+    : TritonMemResource<IO>(data, name, size), errMsgInput_(this->data_->name_ + " toServer(): unable to set data for batch entry"),
+      errMsgOutput_(this->data_->name_ + " fromServer(): unable to get raw") {}
 
 template <>
 void TritonInputHeapResource::copyInput(const void* values, size_t offset) {
   triton_utils::throwIfError(
-      data_->data_->AppendRaw(reinterpret_cast<const uint8_t*>(values), data_->byteSizePerBatch_),
-      data_->name_ + " toServer(): unable to set data for batch entry " +
-          std::to_string(offset / data_->byteSizePerBatch_));
+      data_->data_->AppendRaw(reinterpret_cast<const uint8_t*>(values), data_->byteSizePerBatch_), errMsgInput_);
 }
 
 template <>

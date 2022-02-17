@@ -87,6 +87,7 @@ private:
 #endif
 
   //private accessors only used internally or by client
+  //unsigned fullLoc(unsigned loc) const { return loc; } ;// + (noBatch_ ? 0 : 1); }
   unsigned fullLoc(unsigned loc) const { return loc + (noBatch_ ? 0 : 1); }
   void setBatchSize(unsigned bsize);
   void reset();
