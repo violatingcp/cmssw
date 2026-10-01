@@ -210,8 +210,10 @@ void L1NNTauProducer::makeTau_HW(const l1t::PFCandidate& seed,
                                  l1t::PFCandidateCollection& parts,
                                  std::unique_ptr<l1t::PFTauCollection>& iTaus) {
   // Seed Cone Jet algorithm with ap_fixed types and hardware emulation
-  L1TauEmu::detaphi_t rCone2 =
-      L1TauEmu::detaphi_t(fTauSize_ * fTauSize_ * L1TauEmu::etaphi_base * L1TauEmu::etaphi_base);
+  // detaphi2_t, not detaphi_t: the latter's LSB is coarser than this value, so
+  // the tau cone used to truncate from R = 0.1 to R = 0.08.
+  L1TauEmu::detaphi2_t rCone2 =
+      L1TauEmu::detaphi2_t(fTauSize_ * fTauSize_ * L1TauEmu::etaphi_base * L1TauEmu::etaphi_base);
   unsigned lId = 0;
 
   input2_t p1_tot = 0;
@@ -224,6 +226,7 @@ void L1NNTauProducer::makeTau_HW(const l1t::PFCandidate& seed,
   L1TauEmu::pt_t pt = 0;
   L1TauEmu::z0_t z0 = 0;
   L1TauEmu::dxy_t dxy = 0;
+
 
   // Reconstruct the Tau Cone
   for (unsigned i0 = 0; i0 < parts.size(); i0++) {
@@ -257,6 +260,7 @@ void L1NNTauProducer::makeTau_HW(const l1t::PFCandidate& seed,
     tmpmass1 = 0;
   L1TauEmu::pt_t mass = l1ct::pt_t(tmpmass1);
 
+
   if (pt < fSeedPt_)
     return;
 
@@ -277,7 +281,12 @@ void L1NNTauProducer::makeTau_HW(const l1t::PFCandidate& seed,
 
   l1ctTau.hwSeedPt = seed.pt();
   l1ctTau.hwSeedZ0 = seed.hwZ0();
-  l1ctTau.hwCharge = seed.charge();
+  // hwCharge is a bool and l1ct::Tau::intCharge() reads it as the SIGN
+  // (hwCharge ? +1 : -1), but seed.charge() is an int of +1 / -1 / 0. Assigning
+  // it directly made -1 convert to true, identical to +1, so every negatively
+  // charged seed was published as positive and the field degenerated into
+  // "is charged". Compare against zero to keep the sign.
+  l1ctTau.hwCharge = (seed.charge() > 0);
 
   l1ctTau.hwType = l1ct::Tau::type_t(lId);
   l1ctTau.hwRawId = ap_uint<10>(NN_ouput.nn_id * 1024);  //NN Output is ap_fixed<16, 6> so need to cast.
@@ -325,7 +334,7 @@ void L1NNTauProducer::process_HW(const l1t::PFCandidateCollection& parts,
   // It would be nice to transform the inputs to the etaphi_base of the FW here, as in the line below
   // However the phi may wrap around if the etaphi_base > 1, so don't do it...
   //std::for_each(work.begin(), work.end(), [](l1t::PFCandidate& x){x.setP4(math::PtEtaPhiMLorentzVector(pt_t(x.pt()), etaphi_t(x.eta()*etaphi_base), etaphi_t(x.phi()*etaphi_base), x.mass()));});
-  detaphi_t rCone2 = detaphi_t(fConeSize_ * fConeSize_ * etaphi_base * etaphi_base);
+  detaphi2_t rCone2 = detaphi2_t(fConeSize_ * fConeSize_ * etaphi_base * etaphi_base);
 
   iTaus->reserve(fMaxTaus_);
   while (!seeds.empty() && iTaus->size() < unsigned(fMaxTaus_)) {

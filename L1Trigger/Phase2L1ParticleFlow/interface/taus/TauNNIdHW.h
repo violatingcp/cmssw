@@ -25,14 +25,31 @@ namespace L1TauEmu {
   typedef ap_fixed<16, 6> tauresult_t;
 
   // Data types and constants used in the FPGA and FPGA-optimized functions
-  //etaphi_base maps physical eta phi units onto bits
-  //This way, the least significant bit of etaphi_t is exactly 0.01
-  //Even though 0.01 is not a power of 2
-  static constexpr float etaphi_base = 100. / 64;
+  // etaphi_base maps physical eta/phi onto integer units.
+  //
+  // 720/pi, so one unit is exactly pi/720 rad - the same step the firmware and
+  // l1ct::Scales use. It was 100/64, giving a 0.01 rad step, which made the
+  // emulator's cone coarser than the firmware's and left particles within
+  // ~0.005 rad of the cone edge on different sides in the two implementations.
+  //
+  // It also makes the file self-consistent: deltaPhi() already compares against
+  // l1ct::Scales::INTPHI_PI (= 720) and INTPHI_TWOPI (= 1440), which are in
+  // pi/720 units. Under the old base pi was 4.909, so those comparisons were
+  // against a value beyond the reachable range and the phi wrap never fired.
+  // Under this base they are exactly pi and 2pi.
+  //
+  // The tau cone follows: 0.1^2 * etaphi_base^2 = 525.25, which is the 525 the
+  // firmware uses.
+  static constexpr float etaphi_base = 720. / 3.14159265358979323846;
   typedef ap_ufixed<14, 12, AP_TRN, AP_SAT> pt_t;  // 1 unit = 0.25 GeV;
-  typedef ap_fixed<10, 4> etaphi_t;                // 1 unit = 0.01;
-  typedef ap_fixed<12, 6> detaphi_t;               // type for the difference between etas or phis
-  typedef ap_fixed<18, 9> detaphi2_t;              // type for detaphi_t squared
+  // Integer-valued: one unit IS the quantum, so no fractional bits. eta spans
+  // +-5.11 -> +-1171 units, phi +-pi -> +-720.
+  typedef ap_fixed<12, 12> etaphi_t;               // 1 unit = pi/720 rad
+  typedef ap_fixed<13, 13> detaphi_t;              // difference between etas or phis
+
+  // A cone radius squared, and the squared distance it is compared against.
+  // Worst case is (2*1171)^2 + 1440^2 ~ 7.6e6, so 25 bits.
+  typedef ap_fixed<26, 26> detaphi2_t;             // type for detaphi_t squared
   typedef ap_fixed<22, 16> pt_etaphi_t;            // type for product of pt with deta or phi
   typedef ap_int<8> dxy_t;
   typedef ap_int<10> z0_t;
@@ -109,10 +126,15 @@ namespace L1TauEmu {
   }
 
   inline detaphi_t deltaPhi(l1t::PFCandidate a, l1t::PFCandidate b) {
-    // scale the particle eta, phi to hardware units
-    etaphi_t aphi = etaphi_t(a.phi() * etaphi_base);
-    etaphi_t bphi = etaphi_t(b.phi() * etaphi_base);
-    detaphi_t dphi = detaphi_t(aphi) - detaphi_t(bphi);
+    // Reconstruct the integers the HARDWARE actually holds. The firmware never
+    // sees a float: layer-1 quantised phi with l1ct::Scales::makeGlbPhi, which
+    // ROUNDS, and those integers are what the deregionizer hands the seeded
+    // cone. etaphi_t(phi * etaphi_base) instead TRUNCATES (ap_fixed<12,12> is
+    // AP_TRN), landing on a different unit often enough to flip the cone test
+    // for ~2.6% of pairs near the boundary - which is how particles the
+    // firmware never had ended up inside CMSSW's cone.
+    detaphi_t dphi = detaphi_t(l1ct::Scales::makeGlbPhi(a.phi()).to_int() -
+                               l1ct::Scales::makeGlbPhi(b.phi()).to_int());
     // phi wrap
     detaphi_t dphi0 =
         dphi > detaphi_t(l1ct::Scales::INTPHI_PI) ? detaphi_t(l1ct::Scales::INTPHI_TWOPI - dphi) : detaphi_t(dphi);
@@ -124,11 +146,10 @@ namespace L1TauEmu {
     return dphiw;
   }
 
-  inline bool inCone(l1t::PFCandidate seed, l1t::PFCandidate part, detaphi_t cone2) {
-    // scale the particle eta, phi to hardware units
-    etaphi_t seta = etaphi_t(seed.eta() * etaphi_base);
-    etaphi_t peta = etaphi_t(part.eta() * etaphi_base);
-    detaphi_t deta = detaphi_t(seta) - detaphi_t(peta);
+  inline bool inCone(l1t::PFCandidate seed, l1t::PFCandidate part, detaphi2_t cone2) {
+    // makeGlbEta, not a truncating cast - see deltaPhi above.
+    detaphi_t deta = detaphi_t(l1ct::Scales::makeGlbEta(seed.eta()).to_int() -
+                               l1ct::Scales::makeGlbEta(part.eta()).to_int());
     detaphi_t dphi = deltaPhi(seed, part);
     bool ret = (deta * deta + dphi * dphi) < cone2;
     return ret;
