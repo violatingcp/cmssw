@@ -206,6 +206,20 @@ void L1NNTauProducer::fillDescriptions(edm::ConfigurationDescriptions& descripti
   descriptions.add("L1NNTauProducer", desc);
 }
 
+// Per-tau constituent dump, for comparing the cone against the firmware's.
+// Off unless TAU_DUMP_CONSTITUENTS names a file. Everything is printed in the
+// pi/720 integer units the firmware works in, and deta/dphi relative to the
+// seed, so the two dumps line up field for field without any conversion.
+namespace {
+  FILE *tauDumpFile() {
+    static FILE *f = [] {
+      const char *path = getenv("TAU_DUMP_CONSTITUENTS");
+      return path ? fopen(path, "w") : nullptr;
+    }();
+    return f;
+  }
+}  // namespace
+
 void L1NNTauProducer::makeTau_HW(const l1t::PFCandidate& seed,
                                  l1t::PFCandidateCollection& parts,
                                  std::unique_ptr<l1t::PFTauCollection>& iTaus) {
@@ -227,6 +241,11 @@ void L1NNTauProducer::makeTau_HW(const l1t::PFCandidate& seed,
   L1TauEmu::z0_t z0 = 0;
   L1TauEmu::dxy_t dxy = 0;
 
+  if (FILE *df = tauDumpFile())
+    fprintf(df, "SEED eta=%+6d phi=%+6d seedpt=%8.3f nparts=%u rCone2=%.6f\n",
+            l1ct::Scales::makeGlbEta(seed.eta()).to_int(),
+            l1ct::Scales::makeGlbPhi(seed.phi()).to_int(),
+            seed.pt(), unsigned(parts.size()), double(rCone2));
 
   // Reconstruct the Tau Cone
   for (unsigned i0 = 0; i0 < parts.size(); i0++) {
@@ -250,6 +269,17 @@ void L1NNTauProducer::makeTau_HW(const l1t::PFCandidate& seed,
           z0 = parts[i0].hwZ0();
           dxy = parts[i0].hwDxy();
         }
+        if (FILE *df = tauDumpFile()) {
+          // (seed - particle), the convention findJet stores in the firmware
+          int dEta = l1ct::Scales::makeGlbEta(seed.eta()).to_int() -
+                     l1ct::Scales::makeGlbEta(parts[i0].eta()).to_int();
+          int dPhi = l1ct::Scales::makeGlbPhi(seed.phi()).to_int() -
+                     l1ct::Scales::makeGlbPhi(parts[i0].phi()).to_int();
+          if (dPhi > l1ct::Scales::INTPHI_PI) dPhi -= l1ct::Scales::INTPHI_TWOPI;
+          if (dPhi < -l1ct::Scales::INTPHI_PI) dPhi += l1ct::Scales::INTPHI_TWOPI;
+          fprintf(df, "  CONS pt=%8.3f deta=%+5d dphi=%+5d id=%d r2=%7d\n",
+                  parts[i0].pt(), dEta, dPhi, int(parts[i0].id()), dEta * dEta + dPhi * dPhi);
+        }
       }
     }
   }
@@ -260,6 +290,11 @@ void L1NNTauProducer::makeTau_HW(const l1t::PFCandidate& seed,
     tmpmass1 = 0;
   L1TauEmu::pt_t mass = l1ct::pt_t(tmpmass1);
 
+  if (FILE *df = tauDumpFile()) {
+    fprintf(df, "  TOT ncone=%u conept=%8.3f %s\n\n",
+            lId, double(pt), (pt < fSeedPt_) ? "DROPPED-BY-SEED-PT-CUT" : "kept");
+    fflush(df);
+  }
 
   if (pt < fSeedPt_)
     return;
